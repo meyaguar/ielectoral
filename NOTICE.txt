@@ -1,0 +1,15 @@
+Este repositorio contiene propiedad intelectual protegida.
+
+Incluye:
+
+* código,
+* diseño,
+* modelos analíticos,
+* estructuras de datos,
+* lógica de negocio electoral.
+
+El acceso no concede derechos de uso.
+
+Cualquier uso no autorizado será considerado una violación de derechos de propiedad intelectual.
+
+Contacto: [eyaguar@hotmail.com](mailto:eyaguar@hotmail.com)
