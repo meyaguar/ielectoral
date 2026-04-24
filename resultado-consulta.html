@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inteligencia Electoral — Resultado de Consulta</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --navy:        #0d1b3e;
+  --navy-deep:   #080f24;
+  --navy-hover:  #1a2d5a;
+  --accent:      #4f6ef7;
+  --accent-glow: rgba(79,110,247,.22);
+  --accent-2:    #7c96ff;
+  --accent-soft: rgba(79,110,247,.09);
+  --accent-med:  rgba(79,110,247,.16);
+  --text-muted:  #8896c0;
+  --text-dim:    #4a5a80;
+  --sidebar-w:   220px;
+  --header-h:    60px;
+  --bg:          #f0f2f8;
+  --card:        #ffffff;
+  --border:      #e4e8f2;
+  --text-dark:   #1a2340;
+  --text-gray:   #5a6a90;
+  --green:       #16a34a;
+  --green-soft:  #dcfce7;
+  --red:         #dc2626;
+  --red-soft:    #fee2e2;
+  --orange:      #ea580c;
+  --orange-soft: #fff7ed;
+  --f-ui:        'Sora', sans-serif;
+  --f-mono:      'IBM Plex Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; font-family: var(--f-ui); background: var(--bg); color: var(--text-dark); -webkit-font-smoothing: antialiased; overflow: hidden; }
+
+/* ══ SIDEBAR ══════════════════════════════════════ */
+.sidebar {
+  position: fixed; top: 0; left: 0;
+  width: var(--sidebar-w); height: 100vh;
+  background: var(--navy-deep);
+  display: flex; flex-direction: column;
+  z-index: 200; border-right: 1px solid rgba(255,255,255,.05);
+  transition: transform .3s ease;
+}
+.sidebar-brand { padding: 0 20px; height: var(--header-h); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06); flex-shrink: 0; }
+.brand-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 0 16px var(--accent-glow); }
+.brand-icon svg { width: 17px; height: 17px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.brand-text strong { font-size: .78rem; font-weight: 700; color: #fff; display: block; }
+.brand-text span   { font-size: .62rem; color: var(--text-dim); font-family: var(--f-mono); letter-spacing: .04em; }
+.nav-section { padding: 16px 12px 4px; }
+.nav-label { font-size: .58rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); padding: 0 8px; margin-bottom: 4px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-size: .78rem; font-weight: 500; text-decoration: none; transition: background .15s, color .15s; margin-bottom: 2px; }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nav-item:hover  { background: var(--navy-hover); color: #fff; }
+.nav-item.active { background: var(--accent-soft); color: var(--accent-2); }
+.nav-item.active svg { stroke: var(--accent-2); }
+.nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: .58rem; font-weight: 700; border-radius: 100px; padding: 1px 7px; }
+.sidebar-footer { margin-top: auto; padding: 14px 12px; border-top: 1px solid rgba(255,255,255,.06); }
+.user-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; transition: background .15s; }
+.user-row:hover { background: var(--navy-hover); }
+.s-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+.user-info strong { font-size: .75rem; color: #fff; display: block; }
+.user-info span   { font-size: .65rem; color: var(--text-dim); }
+
+/* ══ HEADER ══════════════════════════════════════ */
+.header {
+  position: fixed; top: 0; left: var(--sidebar-w); right: 0;
+  height: var(--header-h);
+  background: rgba(240,242,248,.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 28px; gap: 16px; z-index: 100;
+}
+.header-title { font-size: 1rem; font-weight: 700; color: var(--text-dark); letter-spacing: -.02em; }
+.header-sub   { font-size: .72rem; color: var(--text-gray); margin-top: 1px; }
+.header-spacer { flex: 1; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.btn-export {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 16px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--card);
+  font-family: var(--f-ui); font-size: .75rem; font-weight: 600;
+  color: var(--text-gray); cursor: pointer;
+  transition: border-color .2s, color .2s;
+}
+.btn-export svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.btn-export:hover { border-color: var(--accent); color: var(--accent); }
+.btn-export.primary { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 2px 10px var(--accent-glow); }
+.btn-export.primary:hover { transform: translateY(-1px); }
+.h-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; color: #fff; cursor: pointer; }
+.hamburger { display: none; width: 34px; height: 34px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); align-items: center; justify-content: center; cursor: pointer; }
+.hamburger svg { width: 16px; height: 16px; stroke: var(--text-gray); fill: none; stroke-width: 2; stroke-linecap: round; }
+
+/* ══ MAIN ════════════════════════════════════════ */
+.main {
+  margin-left: var(--sidebar-w); margin-top: var(--header-h);
+  height: calc(100vh - var(--header-h));
+  display: grid; grid-template-columns: 1fr 320px;
+  overflow: hidden;
+}
+
+/* ══ LEFT — RESULTADO ════════════════════════════ */
+.panel-left {
+  overflow-y: auto; overflow-x: hidden;
+  padding: 22px 24px 28px 28px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+
+/* ── QUERY BANNER ──────────────────────────────── */
+.query-banner {
+  background: var(--navy-deep);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.q-chip {
+  background: var(--accent); color: #fff;
+  font-size: .62rem; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; border-radius: 6px;
+  padding: 3px 9px; flex-shrink: 0; margin-top: 1px;
+}
+.q-text { font-size: .88rem; color: #e8ecff; font-weight: 500; line-height: 1.5; flex: 1; }
+.q-meta { font-size: .65rem; color: var(--text-dim); margin-top: 4px; font-family: var(--f-mono); }
+
+/* ── TABS ──────────────────────────────────────── */
+.tabs-row {
+  display: flex; gap: 2px;
+  border-bottom: 2px solid var(--border);
+}
+.tab {
+  padding: 9px 18px; cursor: pointer;
+  font-size: .78rem; font-weight: 600; color: var(--text-gray);
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: color .2s, border-color .2s;
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.tab svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tab:hover { color: var(--accent); }
+.tab.active { color: var(--accent); border-color: var(--accent); }
+
+/* ── TAB PANELS ────────────────────────────────── */
+.tab-panel { display: none; flex-direction: column; gap: 16px; animation: fadeIn .25s ease; }
+.tab-panel.active { display: flex; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── HALLAZGO PRINCIPAL ────────────────────────── */
+.hallazgo {
+  background: linear-gradient(135deg, #0d1b3e 0%, #1a2d5a 100%);
+  border-radius: 12px; padding: 20px 22px;
+  border-left: 4px solid var(--accent);
+}
+.hallazgo-label { font-size: .62rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-2); margin-bottom: 8px; }
+.hallazgo-text  { font-size: .9rem; color: #e8ecff; line-height: 1.6; font-weight: 400; }
+.hallazgo-text strong { color: #fff; font-weight: 600; }
+
+/* ── KPI ROW ───────────────────────────────────── */
+.kpi-trio { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+.kpi-mini {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; position: relative; overflow: hidden;
+}
+.kpi-mini::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); }
+.kpi-mini.red::before  { background: var(--red); }
+.kpi-mini.oran::before { background: var(--orange); }
+.kpi-mini-label { font-size: .64rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-gray); margin-bottom: 6px; }
+.kpi-mini-value { font-size: 1.55rem; font-weight: 700; color: var(--text-dark); letter-spacing: -.03em; line-height: 1; }
+.kpi-mini.red  .kpi-mini-value { color: var(--red); }
+.kpi-mini.oran .kpi-mini-value { color: var(--orange); }
+.kpi-mini-sub { font-size: .67rem; color: var(--text-gray); margin-top: 4px; line-height: 1.4; }
+
+/* ── TABLE ─────────────────────────────────────── */
+.table-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.table-head-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.table-title { font-size: .82rem; font-weight: 700; color: var(--text-dark); }
+.table-search {
+  display: flex; align-items: center; gap: 6px;
+  background: #f4f6fb; border: 1px solid var(--border); border-radius: 7px;
+  padding: 5px 10px;
+}
+.table-search input { border: none; outline: none; background: transparent; font-family: var(--f-ui); font-size: .72rem; color: var(--text-dark); width: 140px; }
+.table-search svg { width: 12px; height: 12px; stroke: var(--text-gray); fill: none; stroke-width: 2; stroke-linecap: round; }
+
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 10px 18px; text-align: left;
+  font-size: .62rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-gray); background: #f8f9fd;
+  border-bottom: 1px solid var(--border);
+}
+thead th:last-child { text-align: right; }
+tbody tr { transition: background .12s; }
+tbody tr:hover { background: #f4f7ff; }
+tbody td { padding: 10px 18px; font-size: .78rem; color: var(--text-dark); border-bottom: 1px solid #f0f2f8; vertical-align: middle; }
+tbody td:last-child { text-align: right; }
+tbody tr:last-child td { border-bottom: none; }
+
+.td-rank { font-family: var(--f-mono); font-weight: 600; color: var(--text-gray); font-size: .7rem; }
+.td-parroquia { font-weight: 600; }
+.td-canton   { font-size: .7rem; color: var(--text-gray); margin-top: 2px; }
+
+.delta-pill {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 9px; border-radius: 100px;
+  font-size: .68rem; font-weight: 700; font-family: var(--f-mono);
+}
+.delta-pill.neg { background: var(--red-soft); color: var(--red); }
+.delta-pill.pos { background: var(--green-soft); color: var(--green); }
+
+.var-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.var-bar { height: 6px; border-radius: 3px; flex: 1; background: #eef0f8; overflow: hidden; }
+.var-bar-fill { height: 100%; border-radius: 3px; transition: width 1s cubic-bezier(.22,1,.36,1); }
+
+/* ── AI ANALYSIS TAB ───────────────────────────── */
+.ai-block { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; }
+.ai-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.ai-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); animation: blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+.ai-label { font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.ai-body { font-size: .82rem; color: var(--text-dark); line-height: 1.75; }
+.ai-body p { margin-bottom: 10px; }
+.ai-body p:last-child { margin-bottom: 0; }
+.ai-body strong { color: var(--navy); font-weight: 600; }
+.ai-body em { color: var(--accent); font-style: normal; font-weight: 500; }
+
+.insight-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.insight-card { background: #f7f9fc; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.insight-card.accent-card { background: var(--accent-soft); border-color: rgba(79,110,247,.2); }
+.insight-icon { font-size: 1.1rem; margin-bottom: 6px; }
+.insight-title { font-size: .72rem; font-weight: 700; color: var(--text-dark); margin-bottom: 4px; }
+.insight-desc  { font-size: .7rem; color: var(--text-gray); line-height: 1.5; }
+
+/* ── SQL TAB ───────────────────────────────────── */
+.sql-card { background: #0d1117; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,.06); }
+.sql-header { padding: 10px 16px; background: #161b22; border-bottom: 1px solid rgba(255,255,255,.06); display: flex; align-items: center; justify-content: space-between; }
+.sql-lang { font-size: .68rem; font-family: var(--f-mono); color: #8b949e; letter-spacing: .08em; }
+.sql-copy { font-size: .68rem; color: var(--accent-2); cursor: pointer; font-family: var(--f-mono); transition: opacity .2s; }
+.sql-copy:hover { opacity: .7; }
+.sql-body { padding: 18px 20px; overflow-x: auto; }
+.sql-body pre { font-family: var(--f-mono); font-size: .75rem; line-height: 1.8; color: #c9d1d9; white-space: pre; }
+.sql-kw   { color: #ff7b72; }
+.sql-fn   { color: #d2a8ff; }
+.sql-str  { color: #a5d6ff; }
+.sql-num  { color: #79c0ff; }
+.sql-cmt  { color: #6e7681; font-style: italic; }
+.sql-col  { color: #ffa657; }
+
+.sql-info { padding: 10px 16px; background: #161b22; border-top: 1px solid rgba(255,255,255,.06); display: flex; align-items: center; gap: 16px; }
+.sql-stat { font-size: .65rem; font-family: var(--f-mono); color: #8b949e; }
+.sql-stat span { color: var(--accent-2); }
+
+/* ── DATOS TAB ─────────────────────────────────── */
+.datos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.datos-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.datos-title { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-gray); margin-bottom: 10px; }
+.datos-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f2f8; font-size: .75rem; }
+.datos-row:last-child { border-bottom: none; }
+.datos-row .dk { color: var(--text-gray); }
+.datos-row .dv { font-weight: 600; color: var(--text-dark); font-family: var(--f-mono); }
+
+/* ══ RIGHT PANEL ═════════════════════════════════ */
+.panel-right {
+  background: var(--card); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+.right-section { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.right-title { font-size: .78rem; font-weight: 700; color: var(--text-dark); margin-bottom: 12px; }
+
+/* Interpretación estratégica */
+.estrategia-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid #f0f2f8;
+}
+.estrategia-item:last-child { border-bottom: none; }
+.est-num { font-family: var(--f-mono); font-size: .65rem; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 2px 7px; flex-shrink: 0; margin-top: 1px; }
+.est-text { font-size: .72rem; color: var(--text-dark); line-height: 1.5; }
+.est-text strong { color: var(--navy); }
+
+/* Acciones rápidas */
+.action-btn {
+  width: 100%; padding: 9px 14px; border-radius: 8px; border: none;
+  font-family: var(--f-ui); font-size: .75rem; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  transition: transform .15s, box-shadow .15s;
+  margin-bottom: 8px;
+}
+.action-btn:last-child { margin-bottom: 0; }
+.action-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.action-btn.prim { background: var(--accent); color: #fff; box-shadow: 0 2px 10px var(--accent-glow); }
+.action-btn.prim:hover { transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-glow); }
+.action-btn.sec  { background: #f4f6fb; color: var(--text-dark); border: 1px solid var(--border); }
+.action-btn.sec:hover  { border-color: var(--accent); color: var(--accent); }
+
+/* Confidence score */
+.confidence-block { display: flex; flex-direction: column; gap: 8px; }
+.conf-row { display: flex; align-items: center; gap: 8px; font-size: .72rem; }
+.conf-label { color: var(--text-gray); width: 110px; flex-shrink: 0; }
+.conf-bar { flex: 1; height: 6px; background: #eef0f8; border-radius: 3px; overflow: hidden; }
+.conf-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 1.2s cubic-bezier(.22,1,.36,1); }
+.conf-pct { font-family: var(--f-mono); font-size: .65rem; font-weight: 600; color: var(--accent); width: 34px; text-align: right; }
+
+/* Right overflow */
+.right-scroll { overflow-y: auto; flex: 1; }
+
+/* ══ RESPONSIVE ═══════════════════════════════════ */
+@media (max-width: 1100px) {
+  .kpi-trio { grid-template-columns: 1fr 1fr 1fr; }
+  .insight-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .main { grid-template-columns: 1fr; }
+  .panel-right { display: none; }
+}
+@media (max-width: 768px) {
+  :root { --sidebar-w: 0px; }
+  .sidebar { transform: translateX(-220px); }
+  .sidebar.open { transform: translateX(0); }
+  .header { left: 0; padding: 0 16px; }
+  .hamburger { display: flex !important; }
+  .panel-left { padding: 14px 16px; }
+  .header-actions .btn-export:not(.primary) { display: none; }
+  .kpi-trio { grid-template-columns: 1fr 1fr; }
+  .datos-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    </div>
+    <div class="brand-text">
+      <strong>Inteligencia Electoral</strong>
+      <span>v2.4.1 · Ecuador</span>
+    </div>
+  </div>
+  <div style="overflow-y:auto;flex:1;">
+    <div class="nav-section">
+      <div class="nav-label">Principal</div>
+      <a class="nav-item" href="dashboard.html">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item active" href="consulta-ia.html">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Consultas IA
+      </a>
+      <a class="nav-item" href="mapa-electoral.html">
+        <svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        Mapas
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Rankings
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Datos</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Elecciones
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Organizaciones
+      </a>
+      <a class="nav-item" href="reportes.html">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Reportes
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Alertas <span class="nav-badge">3</span>
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Sistema</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        Configuración
+      </a>
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="s-avatar">EY</div>
+      <div class="user-info"><strong>Ing. E. Yaguar</strong><span>Administrador</span></div>
+    </div>
+  </div>
+</aside>
+
+<!-- ══ HEADER ════════════════════════════════════════ -->
+<header class="header">
+  <button class="hamburger" onclick="toggleSidebar()">
+    <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div>
+    <div class="header-title">Resultado de consulta</div>
+    <div class="header-sub">Análisis IA · PSC · Guayas · 2014–2023</div>
+  </div>
+  <div class="header-spacer"></div>
+  <div class="header-actions">
+    <button class="btn-export" onclick="toast('Guardando análisis...')">
+      <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Guardar
+    </button>
+    <button class="btn-export" onclick="toast('Exportando Excel...')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Excel
+    </button>
+    <button class="btn-export primary" onclick="toast('Generando PDF...')">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar PDF
+    </button>
+    <div class="h-avatar">EY</div>
+  </div>
+</header>
+
+<!-- ══ MAIN ══════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="panel-left">
+
+    <!-- Query banner -->
+    <div class="query-banner">
+      <span class="q-chip">Consulta</span>
+      <div>
+        <div class="q-text">¿Dónde el PSC ha perdido más votos entre 2014 y 2023 en Guayas?</div>
+        <div class="q-meta">Procesado: 1.7s · Registros analizados: 524,180 · GPT-4o · CNE 2002–2023 · Hoy 09:42</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-row">
+      <div class="tab active" onclick="switchTab('resumen')">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Resumen
+      </div>
+      <div class="tab" onclick="switchTab('ia')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Análisis IA
+      </div>
+      <div class="tab" onclick="switchTab('datos')">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Datos
+      </div>
+      <div class="tab" onclick="switchTab('sql')">
+        <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        SQL generado
+      </div>
+    </div>
+
+    <!-- ── TAB: RESUMEN ──────────────────────────── -->
+    <div class="tab-panel active" id="panel-resumen">
+
+      <!-- Hallazgo -->
+      <div class="hallazgo">
+        <div class="hallazgo-label">Hallazgo principal</div>
+        <div class="hallazgo-text">
+          El PSC ha perdido votos en las <strong>parroquias rurales y periféricas de Guayas</strong>,
+          especialmente en el norte y sur de la provincia, entre 2014 y 2023.
+          La caída acumulada supera los <strong>127,842 votos</strong> en 148 parroquias analizadas,
+          con una variación promedio de <em>–18.7%</em>.
+          El patrón señala migración sostenida hacia ADN y RETO en zonas de alta volatilidad histórica.
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-trio">
+        <div class="kpi-mini">
+          <div class="kpi-mini-label">Parroquias analizadas</div>
+          <div class="kpi-mini-value" id="kv1">0</div>
+          <div class="kpi-mini-sub">De 148 totales en Guayas</div>
+        </div>
+        <div class="kpi-mini red">
+          <div class="kpi-mini-label">Pérdida total de votos</div>
+          <div class="kpi-mini-value" id="kv2">0</div>
+          <div class="kpi-mini-sub">2014 vs 2023 · PSC Presidencia</div>
+        </div>
+        <div class="kpi-mini oran">
+          <div class="kpi-mini-label">Variación promedio</div>
+          <div class="kpi-mini-value" id="kv3">0%</div>
+          <div class="kpi-mini-sub">Caída ponderada por padrón</div>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="table-card">
+        <div class="table-head-row">
+          <div class="table-title">Top 5 parroquias con mayor pérdida</div>
+          <div class="table-search">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Buscar parroquia..." oninput="filterTable(this.value)">
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table id="mainTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Parroquia / Cantón</th>
+                <th>Votos 2014</th>
+                <th>Votos 2023</th>
+                <th>Diferencia</th>
+                <th>Variación</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+
+
+    </div><!-- /panel-resumen -->
+
+    <!-- ── TAB: ANÁLISIS IA ──────────────────────── -->
+    <div class="tab-panel" id="panel-ia">
+      <div class="ai-block">
+        <div class="ai-header">
+          <div class="ai-dot"></div>
+          <span class="ai-label">Interpretación estratégica · GPT-4o</span>
+        </div>
+        <div class="ai-body">
+          <p>El análisis de la serie 2014–2023 para el PSC en Guayas revela un <strong>patrón de erosión progresiva</strong> que no se explica solo por la volatilidad electoral general. La caída es <em>estructuralmente concentrada</em> en parroquias periurbanas y rurales donde el partido históricamente dependía del arrastre de candidatos locales fuertes.</p>
+          <p>Las parroquias con mayor pérdida — Urdaneta, Balao, Naranjal y El Triunfo — comparten un perfil común: <strong>alta dependencia de candidaturas personales</strong> sin marca partidaria consolidada, lo que las convierte en territorio volátil cuando el candidato ancla no compite o pierde vigencia.</p>
+          <p>El voto migrado no se fragmenta uniformemente. <em>ADN capturó el 61% de los votos perdidos</em> por PSC en estas zonas, sugiriendo un elector que no abandona el centro-derecha sino que reubica su preferencia dentro del mismo espectro ideológico.</p>
+        </div>
+      </div>
+
+      <div class="insight-row">
+        <div class="insight-card accent-card">
+          <div class="insight-icon">⚠️</div>
+          <div class="insight-title">Riesgo de continuar perdiendo</div>
+          <div class="insight-desc">Sin candidato ancla en Guayaquil norte, la proyección 2025 indica una caída adicional de 8–12pp en las mismas parroquias.</div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-icon">🎯</div>
+          <div class="insight-title">Territorio recuperable</div>
+          <div class="insight-desc">Balao y El Triunfo muestran fidelidad residual del 22%. Con candidato fuerte local, existe voto recuperable estimado en 14,000 votos.</div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-icon">📍</div>
+          <div class="insight-title">Patrón de migración claro</div>
+          <div class="insight-desc">61% del voto migrado fue hacia ADN. Indica que el elector no cambia de posición ideológica, cambia de vehículo electoral.</div>
+        </div>
+        <div class="insight-card accent-card">
+          <div class="insight-icon">💡</div>
+          <div class="insight-title">Recomendación táctica</div>
+          <div class="insight-desc">Priorizar alianzas o candidaturas sólidas en los 6 cantones con mayor voto recuperable antes de 2025.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: DATOS ────────────────────────────── -->
+    <div class="tab-panel" id="panel-datos">
+      <div class="datos-grid">
+        <div class="datos-card">
+          <div class="datos-title">Parámetros de consulta</div>
+          <div class="datos-row"><span class="dk">Organización</span><span class="dv">PSC</span></div>
+          <div class="datos-row"><span class="dk">Provincia</span><span class="dv">Guayas</span></div>
+          <div class="datos-row"><span class="dk">Dignidad</span><span class="dv">Presidencia</span></div>
+          <div class="datos-row"><span class="dk">Año base</span><span class="dv">2014</span></div>
+          <div class="datos-row"><span class="dk">Año final</span><span class="dv">2023</span></div>
+          <div class="datos-row"><span class="dk">Nivel</span><span class="dv">Parroquial</span></div>
+        </div>
+        <div class="datos-card">
+          <div class="datos-title">Estadísticas del resultado</div>
+          <div class="datos-row"><span class="dk">Registros fuente</span><span class="dv">524,180</span></div>
+          <div class="datos-row"><span class="dk">Parroquias eval.</span><span class="dv">148</span></div>
+          <div class="datos-row"><span class="dk">Con pérdida</span><span class="dv">121 (81.7%)</span></div>
+          <div class="datos-row"><span class="dk">Con ganancia</span><span class="dv">27 (18.2%)</span></div>
+          <div class="datos-row"><span class="dk">Tiempo proceso</span><span class="dv">1.7s</span></div>
+          <div class="datos-row"><span class="dk">Fuente CNE</span><span class="dv">2002–2023</span></div>
+        </div>
+        <div class="datos-card">
+          <div class="datos-title">Totales provinciales</div>
+          <div class="datos-row"><span class="dk">Votos PSC 2014</span><span class="dv">684,312</span></div>
+          <div class="datos-row"><span class="dk">Votos PSC 2023</span><span class="dv">556,470</span></div>
+          <div class="datos-row"><span class="dk">Diferencia</span><span class="dv">–127,842</span></div>
+          <div class="datos-row"><span class="dk">Var. provincial</span><span class="dv">–18.7%</span></div>
+          <div class="datos-row"><span class="dk">Padrón Guayas</span><span class="dv">3,210,440</span></div>
+        </div>
+        <div class="datos-card">
+          <div class="datos-title">Voto migrado (estimado)</div>
+          <div class="datos-row"><span class="dk">Hacia ADN</span><span class="dv">~78,082 (61%)</span></div>
+          <div class="datos-row"><span class="dk">Hacia RETO</span><span class="dv">~25,568 (20%)</span></div>
+          <div class="datos-row"><span class="dk">Abstencionismo</span><span class="dv">~15,341 (12%)</span></div>
+          <div class="datos-row"><span class="dk">Otros</span><span class="dv">~8,851 (7%)</span></div>
+          <div class="datos-row"><span class="dk">Confianza estim.</span><span class="dv">87%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: SQL ──────────────────────────────── -->
+    <div class="tab-panel" id="panel-sql">
+      <div class="sql-card">
+        <div class="sql-header">
+          <span class="sql-lang">SQL · SQL Server · Generado automáticamente</span>
+          <span class="sql-copy" onclick="copySQL()">Copiar código</span>
+        </div>
+        <div class="sql-body">
+          <pre id="sqlCode"><span class="sql-cmt">-- Consulta generada por Inteligencia Electoral IA</span>
+<span class="sql-cmt">-- Pregunta: ¿Dónde el PSC ha perdido más votos entre 2014 y 2023 en Guayas?</span>
+<span class="sql-cmt">-- Generado: 2025-01-23 09:42:17</span>
+
+<span class="sql-kw">WITH</span> votos_base <span class="sql-kw">AS</span> (
+  <span class="sql-kw">SELECT</span>
+    p.<span class="sql-col">cod_parroquia</span>,
+    p.<span class="sql-col">nom_parroquia</span>,
+    p.<span class="sql-col">nom_canton</span>,
+    <span class="sql-fn">SUM</span>(<span class="sql-kw">CASE WHEN</span> r.<span class="sql-col">anio</span> = <span class="sql-num">2014</span> <span class="sql-kw">THEN</span> r.<span class="sql-col">votos</span> <span class="sql-kw">ELSE</span> <span class="sql-num">0</span> <span class="sql-kw">END</span>) <span class="sql-kw">AS</span> <span class="sql-col">votos_2014</span>,
+    <span class="sql-fn">SUM</span>(<span class="sql-kw">CASE WHEN</span> r.<span class="sql-col">anio</span> = <span class="sql-num">2023</span> <span class="sql-kw">THEN</span> r.<span class="sql-col">votos</span> <span class="sql-kw">ELSE</span> <span class="sql-num">0</span> <span class="sql-kw">END</span>) <span class="sql-kw">AS</span> <span class="sql-col">votos_2023</span>
+  <span class="sql-kw">FROM</span> <span class="sql-col">Resultados</span> r
+  <span class="sql-kw">INNER JOIN</span> <span class="sql-col">Candidatos</span>     c  <span class="sql-kw">ON</span> r.<span class="sql-col">cod_candidato</span>    = c.<span class="sql-col">cod_candidato</span>
+  <span class="sql-kw">INNER JOIN</span> <span class="sql-col">Organizaciones</span>  o  <span class="sql-kw">ON</span> c.<span class="sql-col">cod_organizacion</span> = o.<span class="sql-col">cod_organizacion</span>
+  <span class="sql-kw">INNER JOIN</span> <span class="sql-col">Parroquias</span>      p  <span class="sql-kw">ON</span> r.<span class="sql-col">cod_parroquia</span>    = p.<span class="sql-col">cod_parroquia</span>
+  <span class="sql-kw">INNER JOIN</span> <span class="sql-col">Dignidades</span>      d  <span class="sql-kw">ON</span> r.<span class="sql-col">cod_dignidad</span>     = d.<span class="sql-col">cod_dignidad</span>
+  <span class="sql-kw">WHERE</span>
+    o.<span class="sql-col">siglas</span>         = <span class="sql-str">'PSC'</span>
+    <span class="sql-kw">AND</span> d.<span class="sql-col">nom_dignidad</span> = <span class="sql-str">'PRESIDENCIA DE LA REPUBLICA'</span>
+    <span class="sql-kw">AND</span> p.<span class="sql-col">cod_provincia</span> = <span class="sql-str">'09'</span>  <span class="sql-cmt">-- Guayas</span>
+    <span class="sql-kw">AND</span> r.<span class="sql-col">anio</span>         <span class="sql-kw">IN</span> (<span class="sql-num">2014</span>, <span class="sql-num">2023</span>)
+  <span class="sql-kw">GROUP BY</span>
+    p.<span class="sql-col">cod_parroquia</span>, p.<span class="sql-col">nom_parroquia</span>, p.<span class="sql-col">nom_canton</span>
+)
+<span class="sql-kw">SELECT</span>
+  <span class="sql-col">nom_parroquia</span>,
+  <span class="sql-col">nom_canton</span>,
+  <span class="sql-col">votos_2014</span>,
+  <span class="sql-col">votos_2023</span>,
+  (<span class="sql-col">votos_2023</span> - <span class="sql-col">votos_2014</span>)                        <span class="sql-kw">AS</span> <span class="sql-col">diferencia</span>,
+  <span class="sql-fn">ROUND</span>(
+    (<span class="sql-col">votos_2023</span> - <span class="sql-col">votos_2014</span>) * <span class="sql-num">100.0</span> / <span class="sql-fn">NULLIF</span>(<span class="sql-col">votos_2014</span>, <span class="sql-num">0</span>),
+    <span class="sql-num">1</span>
+  )                                                    <span class="sql-kw">AS</span> <span class="sql-col">variacion_pct</span>
+<span class="sql-kw">FROM</span> votos_base
+<span class="sql-kw">WHERE</span> <span class="sql-col">votos_2014</span> &gt; <span class="sql-num">0</span>
+<span class="sql-kw">ORDER BY</span> <span class="sql-col">diferencia</span> <span class="sql-kw">ASC</span>
+<span class="sql-kw">OFFSET</span> <span class="sql-num">0</span> <span class="sql-kw">ROWS FETCH NEXT</span> <span class="sql-num">20</span> <span class="sql-kw">ROWS ONLY</span>;</pre>
+        </div>
+        <div class="sql-info">
+          <span class="sql-stat">Tiempo ejecución: <span>1.7s</span></span>
+          <span class="sql-stat">Filas: <span>148</span></span>
+          <span class="sql-stat">Tablas: <span>5</span></span>
+          <span class="sql-stat">Motor: <span>SQL Server 2022</span></span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /panel-left -->
+
+  <!-- RIGHT PANEL -->
+  <div class="panel-right">
+    <div class="right-scroll">
+
+      <!-- Interpretación estratégica -->
+      <div class="right-section">
+        <div class="right-title">Interpretación estratégica</div>
+        <div class="estrategia-item">
+          <span class="est-num">01</span>
+          <div class="est-text"><strong>No defender todo Guayas.</strong> Concentrar recursos en los 6 cantones con voto recuperable antes de 2025.</div>
+        </div>
+        <div class="estrategia-item">
+          <span class="est-num">02</span>
+          <div class="est-text"><strong>El rival real es ADN,</strong> no la abstención. El elector no se fue — cambió de vehículo dentro del mismo espectro.</div>
+        </div>
+        <div class="estrategia-item">
+          <span class="est-num">03</span>
+          <div class="est-text"><strong>Candidaturas locales ancla</strong> son el factor crítico en parroquias de alta volatilidad. Sin ellas, la pérdida continuará.</div>
+        </div>
+        <div class="estrategia-item">
+          <span class="est-num">04</span>
+          <div class="est-text">Balao y El Triunfo tienen <strong>fidelidad residual del 22%</strong> — territorios de retorno con inversión táctica focalizada.</div>
+        </div>
+      </div>
+
+
+
+      <!-- Confianza del análisis -->
+      <div class="right-section">
+        <div class="right-title">Confianza del análisis</div>
+        <div class="confidence-block">
+          <div class="conf-row">
+            <span class="conf-label">Cobertura datos</span>
+            <div class="conf-bar"><div class="conf-fill" data-w="94" style="width:0%"></div></div>
+            <span class="conf-pct">94%</span>
+          </div>
+          <div class="conf-row">
+            <span class="conf-label">Consistencia serie</span>
+            <div class="conf-bar"><div class="conf-fill" data-w="88" style="width:0%"></div></div>
+            <span class="conf-pct">88%</span>
+          </div>
+          <div class="conf-row">
+            <span class="conf-label">Precisión migración</span>
+            <div class="conf-bar"><div class="conf-fill" data-w="82" style="width:0%"></div></div>
+            <span class="conf-pct">82%</span>
+          </div>
+          <div class="conf-row">
+            <span class="conf-label">Interpretación IA</span>
+            <div class="conf-bar"><div class="conf-fill" data-w="87" style="width:0%"></div></div>
+            <span class="conf-pct">87%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="right-section" style="border-bottom:none;">
+        <div class="right-title">Acciones</div>
+        <button class="action-btn prim" onclick="toast('Generando PDF...')">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar PDF
+        </button>
+        <button class="action-btn sec" onclick="toast('Exportando Excel...')">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Exportar Excel
+        </button>
+        <button class="action-btn sec" onclick="toast('Análisis guardado.')">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar análisis
+        </button>
+        <button class="action-btn sec" onclick="window.location.href='consulta-ia.html'">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Nueva consulta
+        </button>
+      </div>
+
+    </div><!-- /right-scroll -->
+  </div><!-- /panel-right -->
+
+</main>
+
+<!-- Toast -->
+<div id="toast" style="
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:#1a2340; color:#fff; padding:10px 22px; border-radius:100px;
+  font-size:.78rem; font-weight:500; opacity:0; transition:all .3s ease; z-index:9999;
+  pointer-events:none; white-space:nowrap;">
+</div>
+
+<script>
+/* ── Tab switch ──────────────────────────────────── */
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const ids = ['resumen','ia','datos','sql'];
+    t.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+}
+
+/* ── Table data ──────────────────────────────────── */
+const tableData = [
+  { rank:1, parroquia:'Urdaneta',    canton:'Urdaneta',      v14:5862, v23:2101, dif:-3761, pct:-64.2 },
+  { rank:2, parroquia:'Balao',       canton:'Balao',         v14:4150, v23:1786, dif:-2364, pct:-57.0 },
+  { rank:3, parroquia:'Naranjal',    canton:'Naranjal',      v14:6980, v23:3125, dif:-3855, pct:-55.2 },
+  { rank:4, parroquia:'El Triunfo',  canton:'El Triunfo',    v14:7230, v23:3560, dif:-3670, pct:-50.8 },
+  { rank:5, parroquia:'Playas Rural',canton:'General Villamil',v14:5190,v23:2710,dif:-2480, pct:-47.8 },
+];
+
+const tbody = document.getElementById('tableBody');
+
+function renderTable(data) {
+  tbody.innerHTML = '';
+  data.forEach(r => {
+    const pctAbs = Math.abs(r.pct);
+    tbody.innerHTML += `
+      <tr>
+        <td class="td-rank">${r.rank}</td>
+        <td>
+          <div class="td-parroquia">${r.parroquia}</div>
+          <div class="td-canton">${r.canton}</div>
+        </td>
+        <td style="font-family:var(--f-mono);font-size:.75rem;">${r.v14.toLocaleString()}</td>
+        <td style="font-family:var(--f-mono);font-size:.75rem;">${r.v23.toLocaleString()}</td>
+        <td><span class="delta-pill neg">${r.dif.toLocaleString()}</span></td>
+        <td>
+          <div class="var-bar-wrap">
+            <div class="var-bar">
+              <div class="var-bar-fill" style="width:${pctAbs}%;background:#dc2626;"></div>
+            </div>
+            <span style="font-family:var(--f-mono);font-size:.68rem;color:#dc2626;font-weight:700;">${r.pct}%</span>
+          </div>
+        </td>
+      </tr>`;
+  });
+}
+renderTable(tableData);
+
+function filterTable(q) {
+  const filtered = tableData.filter(r =>
+    r.parroquia.toLowerCase().includes(q.toLowerCase()) ||
+    r.canton.toLowerCase().includes(q.toLowerCase())
+  );
+  renderTable(filtered);
+}
+
+/* ── Animate KPI counters ────────────────────────── */
+function animateCount(el, target, prefix, suffix, decimals) {
+  let start = 0; const dur = 1200; const step = 16;
+  const steps = dur / step;
+  const inc = target / steps;
+  const iv = setInterval(() => {
+    start += inc;
+    if (start >= target) { start = target; clearInterval(iv); }
+    el.textContent = prefix + (decimals
+      ? start.toFixed(1) + suffix
+      : Math.round(start).toLocaleString() + suffix);
+  }, step);
+}
+
+setTimeout(() => {
+  animateCount(document.getElementById('kv1'), 148, '', '', 0);
+  animateCount(document.getElementById('kv2'), 127842, '–', '', 0);
+  animateCount(document.getElementById('kv3'), 18.7, '–', '%', 1);
+}, 300);
+
+/* ── Animate confidence bars ─────────────────────── */
+setTimeout(() => {
+  document.querySelectorAll('.conf-fill').forEach(el => {
+    el.style.width = el.dataset.w + '%';
+  });
+}, 400);
+
+/* ── Copy SQL ────────────────────────────────────── */
+function copySQL() {
+  const text = document.getElementById('sqlCode').innerText;
+  navigator.clipboard.writeText(text).then(() => toast('SQL copiado al portapapeles'));
+}
+
+/* ── Toast ───────────────────────────────────────── */
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)';
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(10px)'; }, 2400);
+}
+
+/* ── Sidebar toggle ──────────────────────────────── */
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+</script>
+</body>
+</html>
