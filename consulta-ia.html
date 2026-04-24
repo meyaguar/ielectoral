@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inteligencia Electoral — Consulta IA</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --navy:        #0d1b3e;
+  --navy-deep:   #080f24;
+  --navy-hover:  #1a2d5a;
+  --accent:      #4f6ef7;
+  --accent-glow: rgba(79,110,247,.25);
+  --accent-2:    #7c96ff;
+  --accent-soft: rgba(79,110,247,.10);
+  --accent-med:  rgba(79,110,247,.18);
+  --text:        #f0f2ff;
+  --text-muted:  #8896c0;
+  --text-dim:    #4a5a80;
+  --sidebar-w:   220px;
+  --header-h:    60px;
+  --bg:          #f0f2f8;
+  --card:        #ffffff;
+  --border:      #e4e8f2;
+  --text-dark:   #1a2340;
+  --text-gray:   #5a6a90;
+  --green:       #16a34a;
+  --f-ui:        'Sora', sans-serif;
+  --f-mono:      'IBM Plex Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; font-family: var(--f-ui); background: var(--bg); color: var(--text-dark); -webkit-font-smoothing: antialiased; overflow: hidden; }
+
+/* ══ SIDEBAR (idéntico al dashboard) ══════════════ */
+.sidebar {
+  position: fixed; top: 0; left: 0;
+  width: var(--sidebar-w); height: 100vh;
+  background: var(--navy-deep);
+  display: flex; flex-direction: column;
+  z-index: 200; border-right: 1px solid rgba(255,255,255,.05);
+  transition: transform .3s ease;
+}
+.sidebar-brand {
+  padding: 0 20px; height: var(--header-h);
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.06); flex-shrink: 0;
+}
+.brand-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 0 16px var(--accent-glow); }
+.brand-icon svg { width: 17px; height: 17px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.brand-text strong { font-size: .78rem; font-weight: 700; color: #fff; display: block; }
+.brand-text span   { font-size: .62rem; color: var(--text-dim); font-family: var(--f-mono); letter-spacing: .04em; }
+.nav-section { padding: 16px 12px 4px; }
+.nav-label { font-size: .58rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); padding: 0 8px; margin-bottom: 4px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-size: .78rem; font-weight: 500; text-decoration: none; transition: background .15s, color .15s; margin-bottom: 2px; }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nav-item:hover  { background: var(--navy-hover); color: #fff; }
+.nav-item.active { background: var(--accent-soft); color: var(--accent-2); }
+.nav-item.active svg { stroke: var(--accent-2); }
+.nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: .58rem; font-weight: 700; border-radius: 100px; padding: 1px 7px; }
+.sidebar-footer { margin-top: auto; padding: 14px 12px; border-top: 1px solid rgba(255,255,255,.06); }
+.user-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; transition: background .15s; }
+.user-row:hover { background: var(--navy-hover); }
+.avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+.user-info strong { font-size: .75rem; color: #fff; display: block; }
+.user-info span   { font-size: .65rem; color: var(--text-dim); }
+
+/* ══ HEADER ══════════════════════════════════════ */
+.header {
+  position: fixed; top: 0; left: var(--sidebar-w); right: 0;
+  height: var(--header-h);
+  background: rgba(240,242,248,.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 28px; gap: 16px; z-index: 100;
+}
+.header-title { font-size: 1rem; font-weight: 700; color: var(--text-dark); letter-spacing: -.02em; }
+.header-sub   { font-size: .72rem; color: var(--text-gray); margin-top: 1px; }
+.header-spacer { flex: 1; }
+.header-actions { display: flex; align-items: center; gap: 10px; }
+.icon-btn { width: 34px; height: 34px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; transition: border-color .2s; }
+.icon-btn svg { width: 16px; height: 16px; stroke: var(--text-gray); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn:hover { border-color: var(--accent); }
+.notif-dot { position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); border: 1.5px solid var(--bg); }
+.header-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; color: #fff; cursor: pointer; }
+.hamburger { display: none; width: 34px; height: 34px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); align-items: center; justify-content: center; cursor: pointer; }
+.hamburger svg { width: 16px; height: 16px; stroke: var(--text-gray); fill: none; stroke-width: 2; stroke-linecap: round; }
+
+/* ══ MAIN LAYOUT ══════════════════════════════════ */
+.main {
+  margin-left: var(--sidebar-w); margin-top: var(--header-h);
+  height: calc(100vh - var(--header-h));
+  display: grid; grid-template-columns: 1fr 300px;
+  overflow: hidden;
+}
+
+/* ══ LEFT PANEL — CONSULTA ════════════════════════ */
+.panel-left {
+  display: flex; flex-direction: column;
+  padding: 24px 24px 24px 28px;
+  overflow: hidden; gap: 16px;
+}
+
+/* Tabs Texto / Voz */
+.tab-row { display: flex; gap: 4px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 4px; width: fit-content; }
+.tab-btn {
+  padding: 7px 22px; border-radius: 7px; border: none;
+  font-family: var(--f-ui); font-size: .78rem; font-weight: 600;
+  cursor: pointer; transition: background .2s, color .2s;
+  background: transparent; color: var(--text-gray);
+}
+.tab-btn.active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px var(--accent-glow); }
+
+/* ── TEXT MODE ────────────────────────────────── */
+#mode-text { display: flex; flex-direction: column; gap: 14px; flex: 1; overflow: hidden; }
+
+/* Query box */
+.query-box {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 14px; padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.query-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.query-label { font-size: .68rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-gray); }
+
+.query-textarea {
+  width: 100%; min-height: 90px; max-height: 140px;
+  border: none; outline: none; resize: none;
+  font-family: var(--f-ui); font-size: .92rem;
+  color: var(--text-dark); line-height: 1.6;
+  background: transparent;
+}
+.query-textarea::placeholder { color: #b0bcd4; }
+
+.query-footer { display: flex; align-items: center; justify-content: space-between; }
+
+.query-meta { font-size: .68rem; color: #b0bcd4; font-family: var(--f-mono); }
+
+.query-actions { display: flex; gap: 8px; align-items: center; }
+
+.btn-clear {
+  padding: 7px 16px; border-radius: 8px;
+  border: 1px solid var(--border); background: transparent;
+  font-family: var(--f-ui); font-size: .75rem; font-weight: 500;
+  color: var(--text-gray); cursor: pointer;
+  transition: border-color .2s, color .2s;
+}
+.btn-clear:hover { border-color: var(--accent); color: var(--accent); }
+
+.btn-analyze {
+  padding: 8px 22px; border-radius: 8px; border: none;
+  background: var(--accent); color: #fff;
+  font-family: var(--f-ui); font-size: .82rem; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 7px;
+  box-shadow: 0 2px 12px var(--accent-glow);
+  transition: transform .15s, box-shadow .15s;
+}
+.btn-analyze:hover { transform: translateY(-1px); box-shadow: 0 4px 18px var(--accent-glow); }
+.btn-analyze svg { width: 14px; height: 14px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Context pills */
+.context-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.context-label { font-size: .68rem; color: var(--text-gray); font-weight: 500; }
+.ctx-pill {
+  padding: 4px 12px; border-radius: 100px;
+  border: 1px solid var(--border); background: #f4f6fb;
+  font-size: .7rem; color: var(--text-gray); cursor: pointer;
+  transition: border-color .2s, color .2s, background .2s;
+}
+.ctx-pill:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.ctx-pill.sel   { border-color: var(--accent); color: var(--accent-2); background: var(--accent-soft); font-weight: 600; }
+
+/* Example questions section */
+.examples-section { flex: 1; overflow-y: auto; }
+.examples-title { font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-gray); margin-bottom: 10px; }
+
+.example-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 13px 16px;
+  margin-bottom: 8px; cursor: pointer;
+  display: flex; align-items: flex-start; gap: 12px;
+  transition: border-color .2s, box-shadow .2s, transform .15s;
+}
+.example-card:hover { border-color: var(--accent); box-shadow: 0 2px 12px var(--accent-soft); transform: translateX(2px); }
+
+.example-icon {
+  width: 28px; height: 28px; border-radius: 7px;
+  background: var(--accent-soft); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.example-icon svg { width: 13px; height: 13px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.example-text { font-size: .78rem; color: var(--text-dark); line-height: 1.5; flex: 1; }
+.example-tag  { font-size: .62rem; color: var(--text-gray); margin-top: 3px; font-family: var(--f-mono); }
+
+.example-arrow { margin-left: auto; color: #c8d0e8; font-size: .9rem; padding-top: 2px; }
+
+/* ── VOICE MODE ───────────────────────────────── */
+#mode-voice {
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  flex: 1; gap: 28px; text-align: center;
+}
+
+.voice-ring-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+
+.voice-ring {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  animation: pulse-ring 2s ease-out infinite;
+}
+.voice-ring:nth-child(1) { width: 120px; height: 120px; animation-delay: 0s; }
+.voice-ring:nth-child(2) { width: 160px; height: 160px; animation-delay: .4s; }
+.voice-ring:nth-child(3) { width: 200px; height: 200px; animation-delay: .8s; }
+
+@keyframes pulse-ring {
+  0%   { transform: scale(.9); opacity: .5; }
+  70%  { transform: scale(1); opacity: .15; }
+  100% { transform: scale(.9); opacity: .5; }
+}
+
+.mic-btn {
+  width: 80px; height: 80px; border-radius: 50%; position: relative; z-index: 2;
+  background: var(--accent); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 32px var(--accent-glow);
+  transition: transform .2s, box-shadow .2s;
+}
+.mic-btn:hover { transform: scale(1.06); box-shadow: 0 0 48px var(--accent-glow); }
+.mic-btn svg { width: 32px; height: 32px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mic-btn.listening { animation: mic-pulse 1s ease-in-out infinite alternate; }
+@keyframes mic-pulse { from { box-shadow: 0 0 24px var(--accent-glow); } to { box-shadow: 0 0 56px rgba(79,110,247,.6); } }
+
+/* Waveform bars */
+.waveform { display: flex; align-items: center; gap: 4px; height: 40px; }
+.wave-bar {
+  width: 4px; border-radius: 2px; background: var(--accent);
+  animation: wave 1.2s ease-in-out infinite;
+}
+.wave-bar:nth-child(1) { animation-delay:.0s; }
+.wave-bar:nth-child(2) { animation-delay:.1s; }
+.wave-bar:nth-child(3) { animation-delay:.2s; }
+.wave-bar:nth-child(4) { animation-delay:.3s; }
+.wave-bar:nth-child(5) { animation-delay:.4s; }
+.wave-bar:nth-child(6) { animation-delay:.3s; }
+.wave-bar:nth-child(7) { animation-delay:.2s; }
+.wave-bar:nth-child(8) { animation-delay:.1s; }
+.wave-bar:nth-child(9) { animation-delay:.0s; }
+@keyframes wave {
+  0%,100% { height: 8px; opacity: .4; }
+  50%      { height: 36px; opacity: 1; }
+}
+
+.voice-status { font-size: .9rem; font-weight: 600; color: var(--text-dark); }
+.voice-hint   { font-size: .75rem; color: var(--text-gray); max-width: 280px; line-height: 1.6; }
+
+.voice-examples { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; width: 100%; max-width: 400px; }
+.voice-ex-item {
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 9px 14px; font-size: .75rem; color: var(--text-gray);
+  cursor: pointer; transition: border-color .2s, color .2s;
+  text-align: left;
+}
+.voice-ex-item:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ══ RIGHT PANEL — HISTORIAL ══════════════════════ */
+.panel-right {
+  background: var(--card); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+.hist-header {
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.hist-title { font-size: .85rem; font-weight: 700; color: var(--text-dark); }
+.hist-clear { font-size: .7rem; color: var(--accent); cursor: pointer; font-weight: 500; }
+
+.hist-list { overflow-y: auto; flex: 1; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+
+.hist-item {
+  background: #f7f9fc; border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; cursor: pointer;
+  transition: border-color .2s, box-shadow .15s;
+}
+.hist-item:hover { border-color: var(--accent); box-shadow: 0 2px 8px var(--accent-soft); }
+.hist-item.active-q { border-color: var(--accent); background: var(--accent-soft); }
+
+.hist-q {
+  font-size: .75rem; color: var(--text-dark); line-height: 1.45;
+  font-weight: 500; margin-bottom: 6px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.hist-meta { display: flex; align-items: center; justify-content: space-between; }
+.hist-time { font-size: .62rem; color: var(--text-gray); font-family: var(--f-mono); }
+.hist-badge {
+  font-size: .6rem; font-weight: 600; padding: 2px 8px; border-radius: 100px;
+  background: var(--accent-soft); color: var(--accent-2);
+}
+
+.hist-footer {
+  padding: 14px 14px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.hist-stats { display: flex; gap: 14px; }
+.hist-stat  { display: flex; flex-direction: column; }
+.hist-stat .num  { font-size: 1.1rem; font-weight: 700; color: var(--text-dark); font-family: var(--f-mono); }
+.hist-stat .lbl  { font-size: .62rem; color: var(--text-gray); }
+
+/* ══ LOADING STATE ════════════════════════════════ */
+.loading-bar {
+  height: 3px; background: #eef0f8; border-radius: 2px;
+  overflow: hidden; display: none;
+}
+.loading-fill {
+  height: 100%; width: 0%; background: var(--accent);
+  border-radius: 2px; transition: width .1s linear;
+}
+.loading-bar.active { display: block; }
+
+/* ══ RESPONSIVE ═══════════════════════════════════ */
+@media (max-width: 900px) {
+  .main { grid-template-columns: 1fr; }
+  .panel-right { display: none; }
+}
+@media (max-width: 768px) {
+  :root { --sidebar-w: 0px; }
+  .sidebar { transform: translateX(-220px); }
+  .sidebar.open { transform: translateX(0); }
+  .header { left: 0; padding: 0 16px; }
+  .hamburger { display: flex !important; }
+  .panel-left { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    </div>
+    <div class="brand-text">
+      <strong>Inteligencia Electoral</strong>
+      <span>v2.4.1 · Ecuador</span>
+    </div>
+  </div>
+
+  <div style="overflow-y:auto;flex:1;">
+    <div class="nav-section">
+      <div class="nav-label">Principal</div>
+      <a class="nav-item" href="dashboard.html">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item active" href="consulta-ia.html">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Consultas IA
+      </a>
+      <a class="nav-item" href="mapa-electoral.html">
+        <svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        Mapas
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Rankings
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Datos</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Elecciones
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Organizaciones
+      </a>
+      <a class="nav-item" href="reportes.html">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Reportes
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Alertas
+        <span class="nav-badge">3</span>
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Sistema</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        Configuración
+      </a>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="avatar">EY</div>
+      <div class="user-info"><strong>Ing. E. Yaguar</strong><span>Administrador</span></div>
+    </div>
+  </div>
+</aside>
+
+<!-- ══ HEADER ════════════════════════════════════════ -->
+<header class="header">
+  <button class="hamburger" id="hamburger" onclick="toggleSidebar()">
+    <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div>
+    <div class="header-title">Consulta con IA</div>
+    <div class="header-sub">Hazle preguntas a tus datos electorales</div>
+  </div>
+  <div class="header-spacer"></div>
+  <div class="header-actions">
+    <div class="icon-btn">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="notif-dot"></span>
+    </div>
+    <div class="header-avatar">EY</div>
+  </div>
+</header>
+
+<!-- ══ MAIN ══════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="panel-left">
+
+    <!-- Tabs -->
+    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+      <div class="tab-row">
+        <button class="tab-btn active" id="tab-text" onclick="switchTab('text')">
+          <span style="display:flex;align-items:center;gap:6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+            Texto
+          </span>
+        </button>
+        <button class="tab-btn" id="tab-voice" onclick="switchTab('voice')">
+          <span style="display:flex;align-items:center;gap:6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            Voz
+          </span>
+        </button>
+      </div>
+      <div style="font-size:.7rem;color:var(--text-gray);">
+        Modelo: <span style="color:var(--accent);font-family:var(--f-mono);font-weight:500;">GPT-4o · CNE 2002–2023</span>
+      </div>
+    </div>
+
+    <!-- Loading bar -->
+    <div class="loading-bar" id="loadingBar">
+      <div class="loading-fill" id="loadingFill"></div>
+    </div>
+
+    <!-- TEXT MODE -->
+    <div id="mode-text">
+
+      <!-- Query box -->
+      <div class="query-box">
+        <div class="query-label">Pregunta al sistema</div>
+        <textarea class="query-textarea" id="queryInput"
+          placeholder="Ej: ¿En qué cantones de Guayas perdió más votos el PSC entre 2014 y 2023?"
+          maxlength="500"></textarea>
+
+        <!-- Context selectors -->
+        <div class="context-row">
+          <span class="context-label">Contexto:</span>
+          <span class="ctx-pill sel" onclick="togglePill(this)">Nacional</span>
+          <span class="ctx-pill" onclick="togglePill(this)">Guayas</span>
+          <span class="ctx-pill" onclick="togglePill(this)">Pichincha</span>
+          <span class="ctx-pill" onclick="togglePill(this)">Manabí</span>
+          <span class="ctx-pill" onclick="togglePill(this)">2023</span>
+          <span class="ctx-pill" onclick="togglePill(this)">2021</span>
+        </div>
+
+        <div class="query-footer">
+          <span class="query-meta" id="charCount">0 / 500</span>
+          <div class="query-actions">
+            <button class="btn-clear" onclick="clearQuery()">Limpiar</button>
+            <button class="btn-analyze" onclick="runAnalysis()">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Analizar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Example questions -->
+      <div class="examples-section">
+        <div class="examples-title">Preguntas de ejemplo — haz clic para cargar</div>
+
+        <div class="example-card" onclick="loadExample(this)">
+          <div class="example-icon">
+            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div class="example-text">¿Dónde el PSC ha perdido más votos entre 2014 y 2023 en Guayas?</div>
+            <div class="example-tag">Migración · Guayas · PSC · Serie 2014–2023</div>
+          </div>
+          <span class="example-arrow">→</span>
+        </div>
+
+        <div class="example-card" onclick="loadExample(this)">
+          <div class="example-icon">
+            <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div class="example-text">¿Qué parroquias de Naranjito muestran comportamiento similar a Tarqui en participación?</div>
+            <div class="example-tag">Similitud territorial · Guayas · Parroquial</div>
+          </div>
+          <span class="example-arrow">→</span>
+        </div>
+
+        <div class="example-card" onclick="loadExample(this)">
+          <div class="example-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div class="example-text">¿Dónde existe mayor oportunidad de crecimiento para ADN en la Sierra?</div>
+            <div class="example-tag">Oportunidad · Sierra · ADN · Presidenciales 2023</div>
+          </div>
+          <span class="example-arrow">→</span>
+        </div>
+
+        <div class="example-card" onclick="loadExample(this)">
+          <div class="example-icon">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div class="example-text">¿En qué territorios el voto sigue a la persona más que al partido político?</div>
+            <div class="example-tag">Arrastre personal · Nacional · Dignidades múltiples</div>
+          </div>
+          <span class="example-arrow">→</span>
+        </div>
+
+        <div class="example-card" onclick="loadExample(this)">
+          <div class="example-icon">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div class="example-text">¿En qué cantones existe fidelidad real a RC y dónde su respaldo es solo coyuntural?</div>
+            <div class="example-tag">Fidelidad · RC · Nacional · 2014–2023</div>
+          </div>
+          <span class="example-arrow">→</span>
+        </div>
+
+        <div class="example-card" onclick="loadExample(this)">
+          <div class="example-icon">
+            <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div class="example-text">¿En qué zonas los datos muestran oportunidad real de disputarle base electoral al rival?</div>
+            <div class="example-tag">Disputa · Comparativo · Nacional</div>
+          </div>
+          <span class="example-arrow">→</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- VOICE MODE -->
+    <div id="mode-voice">
+      <div class="waveform" id="waveform" style="opacity:0;">
+        <div class="wave-bar" style="height:14px;"></div>
+        <div class="wave-bar" style="height:22px;"></div>
+        <div class="wave-bar" style="height:32px;"></div>
+        <div class="wave-bar" style="height:24px;"></div>
+        <div class="wave-bar" style="height:36px;"></div>
+        <div class="wave-bar" style="height:28px;"></div>
+        <div class="wave-bar" style="height:34px;"></div>
+        <div class="wave-bar" style="height:20px;"></div>
+        <div class="wave-bar" style="height:12px;"></div>
+      </div>
+
+      <div class="voice-ring-wrap">
+        <div class="voice-ring"></div>
+        <div class="voice-ring"></div>
+        <div class="voice-ring"></div>
+        <button class="mic-btn" id="micBtn" onclick="toggleMic()">
+          <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+      </div>
+
+      <div>
+        <div class="voice-status" id="voiceStatus">Di tu pregunta</div>
+        <div class="voice-hint" style="margin-top:6px;">Presiona el micrófono y habla. La plataforma transcribirá y analizará tu consulta automáticamente.</div>
+      </div>
+
+      <div class="voice-examples">
+        <div style="font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-gray);margin-bottom:4px;">Ejemplos de voz</div>
+        <div class="voice-ex-item" onclick="switchTab('text')">¿Dónde el PSC ha perdido más votos entre 2014 y 2023 en Guayas?</div>
+        <div class="voice-ex-item" onclick="switchTab('text')">¿En qué parroquias ADN ha crecido por encima del promedio nacional?</div>
+        <div class="voice-ex-item" onclick="switchTab('text')">¿Qué organizaciones dominan en la Sierra rural?</div>
+      </div>
+    </div>
+
+  </div><!-- /panel-left -->
+
+  <!-- RIGHT PANEL — HISTORIAL -->
+  <div class="panel-right">
+    <div class="hist-header">
+      <div class="hist-title">Historial de consultas</div>
+      <span class="hist-clear">Limpiar</span>
+    </div>
+
+    <div class="hist-list">
+      <div class="hist-item active-q" onclick="loadHist(this, '¿Dónde el PSC ha perdido más votos entre 2014 y 2023 en Guayas?')">
+        <div class="hist-q">¿Dónde el PSC ha perdido más votos entre 2014 y 2023 en Guayas?</div>
+        <div class="hist-meta">
+          <span class="hist-time">Hoy, 09:42</span>
+          <span class="hist-badge">Guayas · PSC</span>
+        </div>
+      </div>
+      <div class="hist-item" onclick="loadHist(this, '¿En qué parroquias ADN ha crecido por encima del promedio nacional?')">
+        <div class="hist-q">¿En qué parroquias ADN ha crecido por encima del promedio nacional?</div>
+        <div class="hist-meta">
+          <span class="hist-time">Hoy, 08:15</span>
+          <span class="hist-badge">Nacional · ADN</span>
+        </div>
+      </div>
+      <div class="hist-item" onclick="loadHist(this, 'Comparar participación entre jóvenes 18-29 en 2017, 2021 y 2023')">
+        <div class="hist-q">Comparar participación entre jóvenes 18-29 en 2017, 2021 y 2023</div>
+        <div class="hist-meta">
+          <span class="hist-time">Ayer, 16:30</span>
+          <span class="hist-badge">Demográfico</span>
+        </div>
+      </div>
+      <div class="hist-item" onclick="loadHist(this, '¿Qué organizaciones dominan en la Sierra rural?')">
+        <div class="hist-q">¿Qué organizaciones dominan en la Sierra rural?</div>
+        <div class="hist-meta">
+          <span class="hist-time">Ayer, 14:08</span>
+          <span class="hist-badge">Sierra · Org.</span>
+        </div>
+      </div>
+      <div class="hist-item" onclick="loadHist(this, '¿En qué cantones la candidatura local no depende del arrastre presidencial?')">
+        <div class="hist-q">¿En qué cantones la candidatura local no depende del arrastre presidencial?</div>
+        <div class="hist-meta">
+          <span class="hist-time">Ayer, 11:22</span>
+          <span class="hist-badge">Arrastre</span>
+        </div>
+      </div>
+      <div class="hist-item" onclick="loadHist(this, '¿Dónde existe mayor oportunidad de disputar base electoral al rival?')">
+        <div class="hist-q">¿Dónde existe mayor oportunidad de disputar base electoral al rival?</div>
+        <div class="hist-meta">
+          <span class="hist-time">22 ene, 10:05</span>
+          <span class="hist-badge">Oportunidad</span>
+        </div>
+      </div>
+      <div class="hist-item" onclick="loadHist(this, '¿Qué provincias muestran mayor migración de voto entre 2019 y 2023?')">
+        <div class="hist-q">¿Qué provincias muestran mayor migración de voto entre 2019 y 2023?</div>
+        <div class="hist-meta">
+          <span class="hist-time">21 ene, 17:40</span>
+          <span class="hist-badge">Migración</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hist-footer">
+      <div class="hist-stats">
+        <div class="hist-stat"><span class="num">24</span><span class="lbl">Consultas este mes</span></div>
+        <div class="hist-stat"><span class="num">1.8s</span><span class="lbl">Tiempo promedio</span></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+/* ── Tab switch ──────────────────────────────────── */
+function switchTab(mode) {
+  const isText = mode === 'text';
+  document.getElementById('tab-text').classList.toggle('active', isText);
+  document.getElementById('tab-voice').classList.toggle('active', !isText);
+  document.getElementById('mode-text').style.display  = isText ? 'flex' : 'none';
+  document.getElementById('mode-voice').style.display = isText ? 'none' : 'flex';
+}
+
+/* ── Character counter ───────────────────────────── */
+const textarea = document.getElementById('queryInput');
+textarea.addEventListener('input', () => {
+  document.getElementById('charCount').textContent = textarea.value.length + ' / 500';
+});
+
+/* ── Clear query ─────────────────────────────────── */
+function clearQuery() {
+  textarea.value = '';
+  document.getElementById('charCount').textContent = '0 / 500';
+  textarea.focus();
+}
+
+/* ── Toggle context pill ─────────────────────────── */
+function togglePill(el) {
+  el.classList.toggle('sel');
+}
+
+/* ── Load example into textarea ──────────────────── */
+function loadExample(card) {
+  const text = card.querySelector('.example-text').textContent.trim();
+  textarea.value = text;
+  document.getElementById('charCount').textContent = text.length + ' / 500';
+  textarea.focus();
+  /* Brief highlight */
+  card.style.borderColor = 'var(--accent)';
+  setTimeout(() => card.style.borderColor = '', 800);
+}
+
+/* ── Load from history ───────────────────────────── */
+function loadHist(el, text) {
+  document.querySelectorAll('.hist-item').forEach(i => i.classList.remove('active-q'));
+  el.classList.add('active-q');
+  textarea.value = text;
+  document.getElementById('charCount').textContent = text.length + ' / 500';
+  switchTab('text');
+}
+
+/* ── Simulate analysis ───────────────────────────── */
+function runAnalysis() {
+  const q = textarea.value.trim();
+  if (!q) { textarea.focus(); return; }
+
+  const bar  = document.getElementById('loadingBar');
+  const fill = document.getElementById('loadingFill');
+  bar.classList.add('active');
+
+  let pct = 0;
+  const iv = setInterval(() => {
+    pct += Math.random() * 18;
+    if (pct > 92) pct = 92;
+    fill.style.width = pct + '%';
+  }, 180);
+
+  setTimeout(() => {
+    clearInterval(iv);
+    fill.style.width = '100%';
+    setTimeout(() => {
+      bar.classList.remove('active');
+      fill.style.width = '0%';
+      window.location.href = 'resultado-consulta.html';
+    }, 300);
+  }, 1800);
+}
+
+/* ── Mic toggle (simulado) ───────────────────────── */
+let micOn = false;
+function toggleMic() {
+  micOn = !micOn;
+  const btn    = document.getElementById('micBtn');
+  const status = document.getElementById('voiceStatus');
+  const wave   = document.getElementById('waveform');
+
+  btn.classList.toggle('listening', micOn);
+  wave.style.opacity    = micOn ? '1' : '0';
+  wave.style.transition = 'opacity .3s';
+  status.textContent    = micOn ? 'Escuchando...' : 'Di tu pregunta';
+
+  if (micOn) {
+    setTimeout(() => {
+      if (!micOn) return;
+      micOn = false;
+      btn.classList.remove('listening');
+      wave.style.opacity = '0';
+      status.textContent = 'Procesando...';
+      setTimeout(() => {
+        switchTab('text');
+        textarea.value = '¿En qué parroquias ADN ha crecido por encima del promedio nacional?';
+        document.getElementById('charCount').textContent = textarea.value.length + ' / 500';
+      }, 900);
+    }, 3000);
+  }
+}
+
+/* ── Keyboard shortcut: Ctrl+Enter ──────────────── */
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runAnalysis(); }
+});
+
+/* ── Sidebar toggle ──────────────────────────────── */
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+</script>
+</body>
+</html>
