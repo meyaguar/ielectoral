@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inteligencia Electoral — Mapa Electoral</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --navy:        #0d1b3e;
+  --navy-deep:   #080f24;
+  --navy-hover:  #1a2d5a;
+  --accent:      #4f6ef7;
+  --accent-glow: rgba(79,110,247,.22);
+  --accent-2:    #7c96ff;
+  --accent-soft: rgba(79,110,247,.09);
+  --text-muted:  #8896c0;
+  --text-dim:    #4a5a80;
+  --sidebar-w:   220px;
+  --header-h:    60px;
+  --bg:          #f0f2f8;
+  --card:        #ffffff;
+  --border:      #e4e8f2;
+  --text-dark:   #1a2340;
+  --text-gray:   #5a6a90;
+  --green:       #16a34a;
+  --red:         #dc2626;
+  --f-ui:        'Sora', sans-serif;
+  --f-mono:      'IBM Plex Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; font-family: var(--f-ui); background: var(--bg); color: var(--text-dark); -webkit-font-smoothing: antialiased; overflow: hidden; }
+
+/* ══ SIDEBAR ══════════════════════════════════════ */
+.sidebar {
+  position: fixed; top: 0; left: 0;
+  width: var(--sidebar-w); height: 100vh;
+  background: var(--navy-deep);
+  display: flex; flex-direction: column;
+  z-index: 200; border-right: 1px solid rgba(255,255,255,.05);
+  transition: transform .3s ease;
+}
+.sidebar-brand { padding: 0 20px; height: var(--header-h); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06); flex-shrink: 0; }
+.brand-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 0 16px var(--accent-glow); }
+.brand-icon svg { width: 17px; height: 17px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.brand-text strong { font-size: .78rem; font-weight: 700; color: #fff; display: block; }
+.brand-text span   { font-size: .62rem; color: var(--text-dim); font-family: var(--f-mono); letter-spacing: .04em; }
+.nav-section { padding: 16px 12px 4px; }
+.nav-label { font-size: .58rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); padding: 0 8px; margin-bottom: 4px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-size: .78rem; font-weight: 500; text-decoration: none; transition: background .15s, color .15s; margin-bottom: 2px; }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nav-item:hover  { background: var(--navy-hover); color: #fff; }
+.nav-item.active { background: var(--accent-soft); color: var(--accent-2); }
+.nav-item.active svg { stroke: var(--accent-2); }
+.nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: .58rem; font-weight: 700; border-radius: 100px; padding: 1px 7px; }
+.sidebar-footer { margin-top: auto; padding: 14px 12px; border-top: 1px solid rgba(255,255,255,.06); }
+.user-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; transition: background .15s; }
+.user-row:hover { background: var(--navy-hover); }
+.s-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+.user-info strong { font-size: .75rem; color: #fff; display: block; }
+.user-info span   { font-size: .65rem; color: var(--text-dim); }
+
+/* ══ HEADER ══════════════════════════════════════ */
+.header {
+  position: fixed; top: 0; left: var(--sidebar-w); right: 0;
+  height: var(--header-h);
+  background: rgba(240,242,248,.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 20px; gap: 14px; z-index: 100;
+}
+.header-title { font-size: 1rem; font-weight: 700; color: var(--text-dark); letter-spacing: -.02em; white-space: nowrap; }
+.header-sub   { font-size: .72rem; color: var(--text-gray); margin-top: 1px; white-space: nowrap; }
+.header-spacer { flex: 1; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.h-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); font-family: var(--f-ui); font-size: .75rem; font-weight: 600; color: var(--text-gray); cursor: pointer; transition: border-color .2s, color .2s; white-space: nowrap; }
+.h-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.h-btn:hover { border-color: var(--accent); color: var(--accent); }
+.h-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.h-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; color: #fff; cursor: pointer; }
+.hamburger { display: none; width: 34px; height: 34px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+.hamburger svg { width: 16px; height: 16px; stroke: var(--text-gray); fill: none; stroke-width: 2; stroke-linecap: round; }
+
+/* ══ LAYOUT ══════════════════════════════════════ */
+.page {
+  margin-left: var(--sidebar-w); margin-top: var(--header-h);
+  height: calc(100vh - var(--header-h));
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* ── FILTER BAR ──────────────────────────────────── */
+.filter-bar {
+  background: var(--card); border-bottom: 1px solid var(--border);
+  padding: 10px 20px; display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap; flex-shrink: 0;
+}
+.filter-group { display: flex; flex-direction: column; gap: 2px; }
+.filter-label { font-size: .58rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-gray); }
+.filter-select {
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 6px 28px 6px 10px; font-family: var(--f-ui); font-size: .77rem;
+  color: var(--text-dark); background: #f7f9fc; cursor: pointer; outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238896c0' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+  transition: border-color .2s; min-width: 130px;
+}
+.filter-select:focus { border-color: var(--accent); }
+.filter-sep { width: 1px; height: 32px; background: var(--border); margin: 0 2px; }
+
+/* Nivel selector pills */
+.nivel-group { display: flex; gap: 4px; align-items: flex-end; }
+.nivel-pill {
+  padding: 6px 14px; border-radius: 7px; border: 1px solid var(--border);
+  background: #f7f9fc; font-family: var(--f-ui); font-size: .75rem; font-weight: 600;
+  color: var(--text-gray); cursor: pointer; transition: all .15s;
+}
+.nivel-pill:hover  { border-color: var(--accent); color: var(--accent); }
+.nivel-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.btn-apply {
+  padding: 7px 20px; border-radius: 8px; border: none;
+  background: var(--accent); color: #fff;
+  font-family: var(--f-ui); font-size: .78rem; font-weight: 600;
+  cursor: pointer; box-shadow: 0 2px 10px var(--accent-glow);
+  transition: transform .15s, box-shadow .15s; white-space: nowrap;
+}
+.btn-apply:hover { transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-glow); }
+
+/* ══ MAP AREA ════════════════════════════════════ */
+.map-area {
+  flex: 1; display: grid;
+  grid-template-columns: 1fr 300px;
+  overflow: hidden;
+}
+
+/* ── MAP CANVAS ──────────────────────────────────── */
+.map-canvas {
+  position: relative; background: #e8edf5;
+  overflow: hidden; display: flex; align-items: center; justify-content: center;
+}
+
+/* zoom controls */
+.zoom-controls {
+  position: absolute; right: 16px; top: 16px; z-index: 10;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.zoom-btn {
+  width: 32px; height: 32px; border-radius: 7px;
+  background: var(--card); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 1.1rem; color: var(--text-gray);
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  transition: border-color .2s, color .2s;
+  user-select: none;
+}
+.zoom-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* map mode toggle */
+.map-mode {
+  position: absolute; left: 16px; top: 16px; z-index: 10;
+  display: flex; gap: 4px;
+}
+.map-mode-btn {
+  padding: 6px 12px; border-radius: 7px; border: 1px solid var(--border);
+  background: var(--card); font-family: var(--f-ui); font-size: .72rem; font-weight: 600;
+  color: var(--text-gray); cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  transition: all .15s;
+}
+.map-mode-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* legend */
+.map-legend {
+  position: absolute; left: 16px; bottom: 16px; z-index: 10;
+  background: rgba(255,255,255,.95); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  min-width: 140px;
+}
+.legend-title { font-size: .65rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-gray); margin-bottom: 8px; }
+.legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.legend-row:last-child { margin-bottom: 0; }
+.legend-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+.legend-label { font-size: .7rem; color: var(--text-dark); }
+
+/* coord badge */
+.coord-badge {
+  position: absolute; bottom: 16px; right: 16px; z-index: 10;
+  background: rgba(255,255,255,.9); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 10px;
+  font-family: var(--f-mono); font-size: .62rem; color: var(--text-gray);
+}
+
+/* tooltip */
+.map-tooltip {
+  position: absolute; z-index: 20; pointer-events: none;
+  background: var(--navy-deep); color: #e8ecff;
+  border-radius: 8px; padding: 8px 12px;
+  font-size: .72rem; line-height: 1.5;
+  box-shadow: 0 4px 20px rgba(0,0,0,.3);
+  opacity: 0; transition: opacity .15s;
+  white-space: nowrap;
+}
+.map-tooltip.visible { opacity: 1; }
+.tt-name { font-weight: 700; color: #fff; margin-bottom: 2px; }
+.tt-val  { color: var(--accent-2); font-family: var(--f-mono); }
+
+/* ── SVG MAP ──────────────────────────────────────── */
+#ecuadorMap {
+  width: 100%; height: 100%;
+  transition: transform .3s ease;
+  cursor: grab;
+}
+#ecuadorMap:active { cursor: grabbing; }
+
+.canton {
+  stroke: #fff; stroke-width: .8;
+  cursor: pointer;
+  transition: filter .2s, opacity .2s;
+}
+.canton:hover { filter: brightness(1.2) drop-shadow(0 2px 6px rgba(0,0,0,.25)); }
+.canton.selected { stroke: #fff; stroke-width: 2; filter: drop-shadow(0 0 8px rgba(79,110,247,.6)); }
+
+/* ══ RIGHT PANEL ═════════════════════════════════ */
+.panel-right {
+  background: var(--card); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+.right-header {
+  padding: 16px 16px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.right-title { font-size: .85rem; font-weight: 700; color: var(--text-dark); margin-bottom: 2px; }
+.right-sub   { font-size: .7rem; color: var(--text-gray); }
+
+.right-scroll { overflow-y: auto; flex: 1; }
+
+/* Territory info */
+.terr-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.terr-label   { font-size: .6rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-gray); margin-bottom: 4px; }
+.terr-value   { font-size: .88rem; font-weight: 700; color: var(--text-dark); }
+.terr-sub     { font-size: .7rem; color: var(--text-gray); margin-top: 2px; }
+
+/* Mini kpi */
+.mini-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.mini-kpi { background: #f7f9fc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.mini-kpi-label { font-size: .6rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-gray); margin-bottom: 4px; }
+.mini-kpi-value { font-size: 1.1rem; font-weight: 700; color: var(--text-dark); letter-spacing: -.02em; }
+.mini-kpi-delta { font-size: .65rem; margin-top: 3px; font-weight: 600; }
+.mini-kpi-delta.pos { color: var(--green); }
+.mini-kpi-delta.neg { color: var(--red); }
+
+/* Org ranking in panel */
+.org-list { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.org-row  { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.org-row:last-child { margin-bottom: 0; }
+.org-rank { font-family: var(--f-mono); font-size: .62rem; color: var(--text-gray); width: 14px; flex-shrink: 0; }
+.org-name { font-size: .75rem; font-weight: 600; color: var(--text-dark); width: 44px; flex-shrink: 0; }
+.org-bar-wrap { flex: 1; height: 8px; background: #eef0f8; border-radius: 4px; overflow: hidden; }
+.org-bar-fill { height: 100%; border-radius: 4px; transition: width 1s cubic-bezier(.22,1,.36,1); }
+.org-pct { font-size: .68rem; font-family: var(--f-mono); color: var(--text-gray); width: 36px; text-align: right; flex-shrink: 0; }
+
+/* Action button */
+.panel-actions { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.act-btn {
+  width: 100%; padding: 9px 14px; border-radius: 8px; border: none;
+  font-family: var(--f-ui); font-size: .76rem; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  transition: transform .15s, box-shadow .15s;
+}
+.act-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.act-btn.prim { background: var(--accent); color: #fff; box-shadow: 0 2px 10px var(--accent-glow); }
+.act-btn.prim:hover { transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-glow); }
+.act-btn.sec  { background: #f4f6fb; color: var(--text-dark); border: 1px solid var(--border); }
+.act-btn.sec:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Indicadores clave */
+.indicadores { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.ind-row { display: flex; align-items: center; justify-content: space-between; }
+.ind-label { font-size: .72rem; color: var(--text-gray); }
+.ind-value { font-size: .78rem; font-weight: 700; color: var(--text-dark); font-family: var(--f-mono); }
+.ind-value.pos { color: var(--green); }
+.ind-value.neg { color: var(--red); }
+.ind-value.acc { color: var(--accent); }
+
+/* ══ RESPONSIVE ═══════════════════════════════════ */
+@media (max-width: 900px) {
+  .map-area { grid-template-columns: 1fr; }
+  .panel-right { display: none; }
+}
+@media (max-width: 768px) {
+  :root { --sidebar-w: 0px; }
+  .sidebar { transform: translateX(-220px); }
+  .sidebar.open { transform: translateX(0); }
+  .header { left: 0; padding: 0 12px; }
+  .hamburger { display: flex !important; }
+  .filter-bar { gap: 8px; padding: 8px 12px; }
+  .filter-sep { display: none; }
+  .h-btn:not(.active) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    </div>
+    <div class="brand-text">
+      <strong>Inteligencia Electoral</strong>
+      <span>v2.4.1 · Ecuador</span>
+    </div>
+  </div>
+  <div style="overflow-y:auto;flex:1;">
+    <div class="nav-section">
+      <div class="nav-label">Principal</div>
+      <a class="nav-item" href="dashboard.html">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item" href="consulta-ia.html">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Consultas IA
+      </a>
+      <a class="nav-item active" href="mapa-electoral.html">
+        <svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        Mapas
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Rankings
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Datos</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Elecciones
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Organizaciones
+      </a>
+      <a class="nav-item" href="reportes.html">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Reportes
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Alertas <span class="nav-badge">3</span>
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Sistema</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        Configuración
+      </a>
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="s-avatar">EY</div>
+      <div class="user-info"><strong>Ing. E. Yaguar</strong><span>Administrador</span></div>
+    </div>
+  </div>
+</aside>
+
+<!-- ══ HEADER ════════════════════════════════════════ -->
+<header class="header">
+  <button class="hamburger" onclick="toggleSidebar()">
+    <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div>
+    <div class="header-title">Mapa electoral</div>
+    <div class="header-sub">Visualiza resultados por territorio</div>
+  </div>
+  <div class="header-spacer"></div>
+  <div class="header-actions">
+    <button class="h-btn" onclick="toast('Exportando mapa...')">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar
+    </button>
+    <button class="h-btn" onclick="toast('Compartiendo enlace...')">
+      <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      Compartir
+    </button>
+    <div class="h-avatar">EY</div>
+  </div>
+</header>
+
+<!-- ══ PAGE ══════════════════════════════════════════ -->
+<div class="page">
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <div class="filter-label">Elección</div>
+      <select class="filter-select" onchange="updateMap()">
+        <option>Presidenciales 2023</option>
+        <option>Presidenciales 2021</option>
+        <option>Seccionales 2023</option>
+        <option>Presidenciales 2019</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Organización</div>
+      <select class="filter-select" id="orgSelect" onchange="updateMap()">
+        <option value="adn">ADN</option>
+        <option value="psc">PSC</option>
+        <option value="rc">RC</option>
+        <option value="reto">RETO</option>
+        <option value="pk">PK</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Indicador</div>
+      <select class="filter-select" onchange="updateMap()">
+        <option>Porcentaje de votos</option>
+        <option>Variación vs anterior</option>
+        <option>Participación</option>
+        <option>Score territorial</option>
+      </select>
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group">
+      <div class="filter-label">Nivel</div>
+      <div class="nivel-group">
+        <button class="nivel-pill" onclick="setNivel(this,'provincia')">Provincia</button>
+        <button class="nivel-pill active" onclick="setNivel(this,'canton')">Cantón</button>
+        <button class="nivel-pill" onclick="setNivel(this,'parroquia')">Parroquia</button>
+      </div>
+    </div>
+    <button class="btn-apply" onclick="updateMap()">Aplicar</button>
+  </div>
+
+  <!-- MAP AREA -->
+  <div class="map-area">
+
+    <!-- MAP CANVAS -->
+    <div class="map-canvas" id="mapCanvas">
+
+      <!-- Mode toggles -->
+      <div class="map-mode">
+        <button class="map-mode-btn active" onclick="setMode(this,'votos')">Votos</button>
+        <button class="map-mode-btn" onclick="setMode(this,'participacion')">Participación</button>
+        <button class="map-mode-btn" onclick="setMode(this,'variacion')">Variación</button>
+      </div>
+
+      <!-- Zoom controls -->
+      <div class="zoom-controls">
+        <div class="zoom-btn" onclick="zoom(1.2)" title="Acercar">+</div>
+        <div class="zoom-btn" onclick="zoom(0.83)" title="Alejar">−</div>
+        <div class="zoom-btn" onclick="resetZoom()" title="Restablecer" style="font-size:.7rem;">⌂</div>
+      </div>
+
+      <!-- Ecuador SVG Map -->
+      <svg id="ecuadorMap" viewBox="0 0 520 680" xmlns="http://www.w3.org/2000/svg"
+           onmousemove="moveTooltip(event)" onmouseleave="hideTooltip()">
+
+        <!-- ── COSTA ──────────────────────────────── -->
+        <!-- Esmeraldas -->
+        <polygon class="canton" data-name="Esmeraldas" data-prov="Esmeraldas" data-pct="31.2" data-votos="182,450"
+          points="88,42 155,38 162,72 140,92 100,95 78,75"
+          fill="#3b82f6" onclick="selectCanton(this)"/>
+        <!-- Manabí Norte -->
+        <polygon class="canton" data-name="Portoviejo" data-prov="Manabí" data-pct="27.8" data-votos="165,320"
+          points="60,95 100,95 108,135 80,148 52,130"
+          fill="#60a5fa" onclick="selectCanton(this)"/>
+        <!-- Manabí Sur -->
+        <polygon class="canton" data-name="Manta" data-prov="Manabí" data-pct="33.4" data-votos="145,800"
+          points="52,130 80,148 85,180 55,192 40,165"
+          fill="#2563eb" onclick="selectCanton(this)"/>
+        <!-- Sto Domingo -->
+        <polygon class="canton" data-name="Santo Domingo" data-prov="Sto. Domingo" data-pct="29.6" data-votos="198,220"
+          points="155,100 205,95 210,135 175,148 145,132"
+          fill="#1d4ed8" onclick="selectCanton(this)"/>
+        <!-- Los Ríos Norte -->
+        <polygon class="canton" data-name="Babahoyo" data-prov="Los Ríos" data-pct="24.1" data-votos="88,410"
+          points="90,192 130,185 138,222 105,235 82,218"
+          fill="#93c5fd" onclick="selectCanton(this)"/>
+        <!-- Los Ríos Sur -->
+        <polygon class="canton" data-name="Quevedo" data-prov="Los Ríos" data-pct="26.8" data-votos="72,180"
+          points="130,185 168,178 172,215 145,228 138,222"
+          fill="#7dd3fc" onclick="selectCanton(this)"/>
+        <!-- Guayas Norte -->
+        <polygon class="canton" data-name="Daule" data-prov="Guayas" data-pct="38.2" data-votos="142,330"
+          points="72,235 115,228 120,268 90,282 65,260"
+          fill="#1d4ed8" onclick="selectCanton(this)"/>
+        <!-- Guayaquil -->
+        <polygon class="canton selected" data-name="Guayaquil" data-prov="Guayas" data-pct="41.5" data-votos="625,840"
+          points="90,268 148,260 158,308 120,325 85,305"
+          fill="#1e40af" onclick="selectCanton(this)"/>
+        <!-- Milagro -->
+        <polygon class="canton" data-name="Milagro" data-prov="Guayas" data-pct="35.7" data-votos="98,560"
+          points="148,268 192,262 198,298 168,312 148,295"
+          fill="#2563eb" onclick="selectCanton(this)"/>
+        <!-- El Oro -->
+        <polygon class="canton" data-name="Machala" data-prov="El Oro" data-pct="28.4" data-votos="118,740"
+          points="88,325 132,318 138,358 105,372 78,352"
+          fill="#3b82f6" onclick="selectCanton(this)"/>
+        <!-- El Oro Sur -->
+        <polygon class="canton" data-name="Santa Rosa" data-prov="El Oro" data-pct="22.1" data-votos="54,210"
+          points="78,352 105,372 108,400 80,412 62,388"
+          fill="#60a5fa" onclick="selectCanton(this)"/>
+        <!-- Loja -->
+        <polygon class="canton" data-name="Loja" data-prov="Loja" data-pct="18.9" data-votos="86,320"
+          points="100,412 148,405 152,442 118,455 92,438"
+          fill="#a5b4fc" onclick="selectCanton(this)"/>
+
+        <!-- ── SIERRA ──────────────────────────────── -->
+        <!-- Carchi -->
+        <polygon class="canton" data-name="Tulcán" data-prov="Carchi" data-pct="22.4" data-votos="38,120"
+          points="200,38 262,34 268,65 240,78 195,68"
+          fill="#c7d2fe" onclick="selectCanton(this)"/>
+        <!-- Imbabura -->
+        <polygon class="canton" data-name="Ibarra" data-prov="Imbabura" data-pct="25.8" data-votos="68,450"
+          points="205,68 262,65 268,100 238,115 198,102"
+          fill="#a5b4fc" onclick="selectCanton(this)"/>
+        <!-- Pichincha -->
+        <polygon class="canton" data-name="Quito" data-prov="Pichincha" data-pct="34.1" data-votos="748,320"
+          points="205,115 268,100 275,148 242,165 198,152"
+          fill="#818cf8" onclick="selectCanton(this)"/>
+        <!-- Cotopaxi -->
+        <polygon class="canton" data-name="Latacunga" data-prov="Cotopaxi" data-pct="28.6" data-votos="55,840"
+          points="210,165 268,148 272,188 240,202 205,190"
+          fill="#6366f1" onclick="selectCanton(this)"/>
+        <!-- Tungurahua -->
+        <polygon class="canton" data-name="Ambato" data-prov="Tungurahua" data-pct="31.2" data-votos="88,120"
+          points="210,202 272,188 278,228 245,242 208,230"
+          fill="#4f46e5" onclick="selectCanton(this)"/>
+        <!-- Bolivar -->
+        <polygon class="canton" data-name="Guaranda" data-prov="Bolívar" data-pct="20.4" data-votos="28,540"
+          points="172,230 210,228 215,262 185,275 162,258"
+          fill="#818cf8" onclick="selectCanton(this)"/>
+        <!-- Chimborazo -->
+        <polygon class="canton" data-name="Riobamba" data-prov="Chimborazo" data-pct="27.3" data-votos="62,180"
+          points="208,242 275,228 280,268 248,282 205,270"
+          fill="#4338ca" onclick="selectCanton(this)"/>
+        <!-- Cañar -->
+        <polygon class="canton" data-name="Azogues" data-prov="Cañar" data-pct="19.8" data-votos="32,410"
+          points="205,282 255,275 260,310 228,322 200,308"
+          fill="#6366f1" onclick="selectCanton(this)"/>
+        <!-- Azuay -->
+        <polygon class="canton" data-name="Cuenca" data-prov="Azuay" data-pct="22.5" data-votos="128,640"
+          points="200,322 262,308 268,352 235,368 195,350"
+          fill="#3730a3" onclick="selectCanton(this)"/>
+        <!-- Loja Sierra -->
+        <polygon class="canton" data-name="Loja Sierra" data-prov="Loja" data-pct="17.2" data-votos="45,820"
+          points="195,368 242,352 248,392 215,405 188,388"
+          fill="#4f46e5" onclick="selectCanton(this)"/>
+
+        <!-- ── ORIENTE ──────────────────────────────── -->
+        <!-- Sucumbíos -->
+        <polygon class="canton" data-name="Nueva Loja" data-prov="Sucumbíos" data-pct="18.2" data-votos="22,140"
+          points="275,38 365,32 368,72 338,85 275,78"
+          fill="#bfdbfe" onclick="selectCanton(this)"/>
+        <!-- Napo -->
+        <polygon class="canton" data-name="Tena" data-prov="Napo" data-pct="15.6" data-votos="18,540"
+          points="275,78 368,72 372,115 340,128 272,118"
+          fill="#dde8ff" onclick="selectCanton(this)"/>
+        <!-- Orellana -->
+        <polygon class="canton" data-name="Orellana" data-prov="Orellana" data-pct="14.8" data-votos="16,320"
+          points="340,85 395,80 398,125 368,138 338,128"
+          fill="#c7d2fe" onclick="selectCanton(this)"/>
+        <!-- Pastaza -->
+        <polygon class="canton" data-name="Puyo" data-prov="Pastaza" data-pct="16.4" data-votos="14,820"
+          points="278,132 368,118 372,168 335,182 275,170"
+          fill="#dde8ff" onclick="selectCanton(this)"/>
+        <!-- Morona Santiago -->
+        <polygon class="canton" data-name="Macas" data-prov="Morona Santiago" data-pct="13.2" data-votos="12,440"
+          points="275,182 335,168 338,222 305,238 272,218"
+          fill="#e8eeff" onclick="selectCanton(this)"/>
+        <!-- Zamora -->
+        <polygon class="canton" data-name="Zamora" data-prov="Zamora-Chinchipe" data-pct="12.8" data-votos="9,840"
+          points="250,330 312,315 315,368 282,382 245,360"
+          fill="#ede9fe" onclick="selectCanton(this)"/>
+
+        <!-- ── LABELS PRINCIPALES ────────────────── -->
+        <text x="120" y="295" font-size="8.5" font-weight="700" fill="rgba(255,255,255,.9)" font-family="sans-serif" text-anchor="middle" pointer-events="none">Guayaquil</text>
+        <text x="238" y="140" font-size="8.5" font-weight="700" fill="rgba(255,255,255,.9)" font-family="sans-serif" text-anchor="middle" pointer-events="none">Quito</text>
+        <text x="230" y="342" font-size="7.5" font-weight="700" fill="rgba(255,255,255,.9)" font-family="sans-serif" text-anchor="middle" pointer-events="none">Cuenca</text>
+
+        <!-- ── GALÁPAGOS decorativo ─────────────── -->
+        <rect x="18" y="520" width="80" height="60" rx="8" fill="#e8edf5" stroke="#d0d8ee" stroke-width="1"/>
+        <circle cx="38"  cy="542" r="10" fill="#60a5fa" opacity=".7"/>
+        <circle cx="62"  cy="550" r="7"  fill="#93c5fd" opacity=".7"/>
+        <circle cx="82"  cy="540" r="12" fill="#3b82f6" opacity=".7"/>
+        <text x="50" y="572" font-size="7" fill="#8896c0" font-family="sans-serif" text-anchor="middle">Galápagos</text>
+
+        <!-- Region labels -->
+        <text x="72"  y="200" font-size="7" fill="#4a5a80" font-family="sans-serif" font-weight="600" opacity=".7">COSTA</text>
+        <text x="235" y="50"  font-size="7" fill="#4a5a80" font-family="sans-serif" font-weight="600" opacity=".7">SIERRA</text>
+        <text x="340" y="100" font-size="7" fill="#4a5a80" font-family="sans-serif" font-weight="600" opacity=".7">ORIENTE</text>
+      </svg>
+
+      <!-- Tooltip -->
+      <div class="map-tooltip" id="mapTooltip">
+        <div class="tt-name" id="ttName">—</div>
+        <div class="tt-val" id="ttPct">—</div>
+        <div style="font-size:.65rem;color:#8896c0;margin-top:2px;" id="ttVotos">—</div>
+      </div>
+
+      <!-- Legend -->
+      <div class="map-legend">
+        <div class="legend-title">% Votos ADN · 2023</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#1e40af;"></div><span class="legend-label">&gt; 40%</span></div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#2563eb;"></div><span class="legend-label">30 – 40%</span></div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#3b82f6;"></div><span class="legend-label">20 – 30%</span></div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#93c5fd;"></div><span class="legend-label">10 – 20%</span></div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#e8eeff;"></div><span class="legend-label">&lt; 10%</span></div>
+      </div>
+
+      <!-- Coord badge -->
+      <div class="coord-badge" id="coordBadge">−1.8312° S, −78.1834° O</div>
+
+    </div><!-- /map-canvas -->
+
+    <!-- RIGHT PANEL -->
+    <div class="panel-right">
+      <div class="right-header">
+        <div class="right-title">Información territorial</div>
+        <div class="right-sub" id="rightSub">Haz clic en un cantón</div>
+      </div>
+
+      <div class="right-scroll">
+
+        <!-- Territorio seleccionado -->
+        <div class="terr-section">
+          <div class="terr-label">Parroquia</div>
+          <div class="terr-value" id="inf-parroquia">Naranjito</div>
+          <div class="terr-label" style="margin-top:10px;">Cantón</div>
+          <div class="terr-value" id="inf-canton">Naranjito</div>
+          <div class="terr-label" style="margin-top:10px;">Provincia</div>
+          <div class="terr-value" id="inf-prov">Guayas</div>
+          <div class="terr-sub" style="margin-top:8px;">% votos ADN · Presidenciales 2023</div>
+          <div class="terr-value" style="font-size:2rem;color:var(--accent);margin-top:4px;" id="inf-pct">41.5%</div>
+        </div>
+
+        <!-- KPIs mini -->
+        <div class="mini-kpi-grid">
+          <div class="mini-kpi">
+            <div class="mini-kpi-label">Votos válidos</div>
+            <div class="mini-kpi-value" id="inf-votos">12,454</div>
+            <div class="mini-kpi-delta pos">▲ +8.2% vs 2021</div>
+          </div>
+          <div class="mini-kpi">
+            <div class="mini-kpi-label">Participación</div>
+            <div class="mini-kpi-value" id="inf-part">83.2%</div>
+            <div class="mini-kpi-delta pos">▲ +4.1pp</div>
+          </div>
+        </div>
+
+        <!-- Indicadores -->
+        <div class="indicadores">
+          <div class="ind-row"><span class="ind-label">Crecimiento ADN</span><span class="ind-value pos">+23.3 pp</span></div>
+          <div class="ind-row"><span class="ind-label">Variación participación</span><span class="ind-value pos">+8.7 pp</span></div>
+          <div class="ind-row"><span class="ind-label">Posición por votos</span><span class="ind-value acc">1 de 16</span></div>
+          <div class="ind-row"><span class="ind-label">Nivel de competencia</span><span class="ind-value neg">ALTO</span></div>
+          <div class="ind-row"><span class="ind-label">Score territorial</span><span class="ind-value acc">0.78</span></div>
+        </div>
+
+        <!-- Top org -->
+        <div class="org-list">
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-gray);margin-bottom:10px;">Top organizaciones</div>
+          <div class="org-row">
+            <span class="org-rank">1</span>
+            <span class="org-name">ADN</span>
+            <div class="org-bar-wrap"><div class="org-bar-fill" style="width:0%;background:#4f6ef7;" data-w="41"></div></div>
+            <span class="org-pct">41.5%</span>
+          </div>
+          <div class="org-row">
+            <span class="org-rank">2</span>
+            <span class="org-name">RC</span>
+            <div class="org-bar-wrap"><div class="org-bar-fill" style="width:0%;background:#f97316;" data-w="21"></div></div>
+            <span class="org-pct">21.3%</span>
+          </div>
+          <div class="org-row">
+            <span class="org-rank">3</span>
+            <span class="org-name">PSC</span>
+            <div class="org-bar-wrap"><div class="org-bar-fill" style="width:0%;background:#ef4444;" data-w="15"></div></div>
+            <span class="org-pct">15.2%</span>
+          </div>
+          <div class="org-row">
+            <span class="org-rank">4</span>
+            <span class="org-name">RETO</span>
+            <div class="org-bar-wrap"><div class="org-bar-fill" style="width:0%;background:#f59e0b;" data-w="9"></div></div>
+            <span class="org-pct">8.9%</span>
+          </div>
+          <div class="org-row">
+            <span class="org-rank">5</span>
+            <span class="org-name">Otros</span>
+            <div class="org-bar-wrap"><div class="org-bar-fill" style="width:0%;background:#94a3b8;" data-w="14"></div></div>
+            <span class="org-pct">13.1%</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="panel-actions">
+          <button class="act-btn prim" onclick="window.location.href='ficha-territorial.html'">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Ver ficha territorial
+          </button>
+          <button class="act-btn sec" onclick="window.location.href='consulta-ia.html'">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Consultar con IA
+          </button>
+          <button class="act-btn sec" onclick="toast('Exportando territorio...')">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar PDF
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /map-area -->
+</div><!-- /page -->
+
+<!-- Toast -->
+<div id="toast" style="position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a2340;color:#fff;padding:10px 22px;border-radius:100px;font-size:.78rem;font-weight:500;opacity:0;transition:all .3s ease;z-index:9999;pointer-events:none;white-space:nowrap;"></div>
+
+<script>
+/* ── Zoom ────────────────────────────────────────── */
+let scale = 1, tx = 0, ty = 0;
+const mapSvg = document.getElementById('ecuadorMap');
+
+function applyTransform() {
+  mapSvg.style.transform = `scale(${scale}) translate(${tx}px,${ty}px)`;
+}
+function zoom(factor) {
+  scale = Math.min(Math.max(scale * factor, 0.5), 4);
+  applyTransform();
+}
+function resetZoom() {
+  scale = 1; tx = 0; ty = 0; applyTransform();
+}
+
+/* ── Drag-to-pan ─────────────────────────────────── */
+let dragging = false, startX, startY, startTx, startTy;
+mapSvg.addEventListener('mousedown', e => {
+  if (e.target.classList.contains('canton')) return;
+  dragging = true; startX = e.clientX; startY = e.clientY;
+  startTx = tx; startTy = ty;
+});
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  tx = startTx + (e.clientX - startX) / scale;
+  ty = startTy + (e.clientY - startY) / scale;
+  applyTransform();
+});
+document.addEventListener('mouseup', () => dragging = false);
+
+/* ── Tooltip ─────────────────────────────────────── */
+const tooltip = document.getElementById('mapTooltip');
+document.querySelectorAll('.canton').forEach(el => {
+  el.addEventListener('mouseenter', () => { tooltip.classList.add('visible'); });
+  el.addEventListener('mouseleave', () => { tooltip.classList.remove('visible'); });
+  el.addEventListener('mousemove', () => {
+    document.getElementById('ttName').textContent  = el.dataset.name + ' · ' + el.dataset.prov;
+    document.getElementById('ttPct').textContent   = 'ADN: ' + el.dataset.pct + '%';
+    document.getElementById('ttVotos').textContent = 'Votos: ' + el.dataset.votos;
+  });
+});
+
+function moveTooltip(e) {
+  const rect = document.getElementById('mapCanvas').getBoundingClientRect();
+  const x = e.clientX - rect.left + 14;
+  const y = e.clientY - rect.top  - 18;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top  = y + 'px';
+}
+function hideTooltip() { tooltip.classList.remove('visible'); }
+
+/* ── Update coord badge on mousemove ─────────────── */
+document.getElementById('mapCanvas').addEventListener('mousemove', e => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const xPct = (e.clientX - rect.left) / rect.width;
+  const yPct = (e.clientY - rect.top)  / rect.height;
+  const lat = (-0.2 - yPct * 5.8).toFixed(4);
+  const lon = (-75.2 + xPct * 8.4).toFixed(4);
+  document.getElementById('coordBadge').textContent = `${lat}° S, ${lon}° O`;
+});
+
+/* ── Canton click ────────────────────────────────── */
+function selectCanton(el) {
+  document.querySelectorAll('.canton').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('inf-parroquia').textContent = el.dataset.name;
+  document.getElementById('inf-canton').textContent    = el.dataset.name;
+  document.getElementById('inf-prov').textContent      = el.dataset.prov;
+  document.getElementById('inf-pct').textContent       = el.dataset.pct + '%';
+  document.getElementById('inf-votos').textContent     = el.dataset.votos;
+  document.getElementById('rightSub').textContent      = el.dataset.prov + ' · seleccionado';
+  /* Re-animate bars */
+  document.querySelectorAll('.org-bar-fill').forEach(b => {
+    b.style.width = '0%';
+    setTimeout(() => { b.style.width = b.dataset.w + '%'; }, 100);
+  });
+}
+
+/* ── Nivel pills ─────────────────────────────────── */
+function setNivel(el, nivel) {
+  document.querySelectorAll('.nivel-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  toast('Nivel: ' + nivel.charAt(0).toUpperCase() + nivel.slice(1));
+}
+
+/* ── Map mode ────────────────────────────────────── */
+function setMode(el, mode) {
+  document.querySelectorAll('.map-mode-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  toast('Modo: ' + el.textContent);
+}
+
+/* ── Update map (simulado) ───────────────────────── */
+function updateMap() {
+  const org = document.getElementById('orgSelect').value;
+  const palettes = {
+    adn:  ['#1e40af','#2563eb','#3b82f6','#93c5fd','#dbeafe'],
+    psc:  ['#991b1b','#dc2626','#ef4444','#fca5a5','#fee2e2'],
+    rc:   ['#7c2d12','#ea580c','#f97316','#fdba74','#ffedd5'],
+    reto: ['#713f12','#d97706','#f59e0b','#fcd34d','#fef3c7'],
+    pk:   ['#14532d','#16a34a','#22c55e','#86efac','#dcfce7'],
+  };
+  const pal = palettes[org] || palettes.adn;
+  const cantons = document.querySelectorAll('.canton');
+  cantons.forEach((c, i) => {
+    const idx = Math.floor(Math.random() * pal.length);
+    c.style.transition = 'fill .5s ease';
+    c.style.fill = pal[idx];
+  });
+  toast('Mapa actualizado · ' + org.toUpperCase());
+}
+
+/* ── Animate org bars on load ────────────────────── */
+setTimeout(() => {
+  document.querySelectorAll('.org-bar-fill').forEach(b => {
+    b.style.width = b.dataset.w + '%';
+  });
+}, 400);
+
+/* ── Toast ───────────────────────────────────────── */
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)';
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(10px)'; }, 2200);
+}
+
+/* ── Sidebar toggle ──────────────────────────────── */
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+</script>
+</body>
+</html>
